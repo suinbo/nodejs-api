@@ -134,6 +134,114 @@ router.post('/api/post/login', function (req, res) {
     }
 });
 
+// 유저 로그인 기록 조회
+router.get('/api/users/infoHistory', function (req, res) {
+    res.status(200).json({
+        headers: {},
+        data: {
+            list: [
+                {
+                    no: 1,
+                    historyDesc: '로그인',
+                    historyDate: 1688207263,
+                    ip: '192.168.200.1',
+                },
+                {
+                    no: 2,
+                    historyDesc: '로그아웃',
+                    historyDate: 1688207263,
+                    ip: '192.168.200.1',
+                },
+            ],
+            totalCount: 2,
+        },
+        code: '0000',
+        detailMessage: 'login success.',
+    });
+});
+
+// 유저 정보 조회
+router.get('/api/users/info', function (req, res) {
+    res.status(200).json({
+        headers: {},
+        data: {
+            id: 'admin',
+            name: '관리자',
+            phone: '010-2958-8046',
+            email: 'suin9610@gmail.com',
+            department: '개발팀',
+            langCode: 'KR',
+            timeCode: 'Seoul',
+        },
+        code: '0000',
+        detailMessage: 'login success.',
+    });
+});
+
+// 세계 타임존 옵션 조회
+router.get('/api/timezones', function (req, res) {
+    res.status(200).json({
+        headers: {},
+        data: [
+            {
+                timeCode: 'Anchorage',
+                timeDefault: true,
+                timeName: '(UTC-09:00) Alaska',
+                timeValue: '',
+            },
+            {
+                timeCode: 'Godthab',
+                timeDefault: true,
+                timeName: '(UTC-03:00) Greenland',
+                timeValue: '',
+            },
+            {
+                timeCode: 'Buenos_Aires',
+                timeDefault: true,
+                timeName: '(UTC-03:00) Buenos Aires',
+                timeValue: '',
+            },
+            {
+                timeCode: 'GMT',
+                timeDefault: true,
+                timeName: '(UTC+00:00) Coordinated Universal Time',
+                timeValue: '',
+            },
+            {
+                timeCode: 'Seoul',
+                timeDefault: true,
+                timeName: '(UTC+09:00) Seoul',
+                timeValue: '',
+            },
+        ],
+        code: '0000',
+        detailMessage: 'login success.',
+    });
+});
+
+// 사용 언어 조회
+router.get('/api/languages', function (req, res) {
+    res.status(200).json({
+        headers: {},
+        data: [
+            {
+                code: 'KR',
+                name: '한국어',
+            },
+            {
+                code: 'ENG',
+                name: '영어',
+            },
+            {
+                code: 'JR',
+                name: '일본어',
+            },
+        ],
+        code: '0000',
+        detailMessage: 'login success.',
+    });
+});
+
 // 라우터 등록
 app.use('/', router);
 
