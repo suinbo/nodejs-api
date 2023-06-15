@@ -242,6 +242,122 @@ router.get('/api/languages', function (req, res) {
     });
 });
 
+// 운영 코드 - 검색조건, 카테고리 코드 조회
+router.get('/api/opcodes/ST00110/list', function (req, res) {
+    res.status(200).json({
+        headers: {},
+        data: [{
+            depth: 1,
+            id: "opcode",
+            leafs: [
+                {           
+                    depth: 2,
+                    id: "search",
+                    leafs: [{ 
+                        id: "title",  
+                        systemId: "",
+                        codeValue: "", 
+                        name: "제목"
+                    }, 
+                    { 
+                        id: "id",  
+                        systemId: "",
+                        codeValue: "", 
+                        name: "아이디"
+                    }],   
+                    name: "검색조건",
+                    systemId: "" 
+                },
+                {           
+                    depth: 2,
+                    id: "category",
+                    leafs: [{ 
+                        id: "category1",  
+                        systemId: "",
+                        codeValue: "", 
+                        name: "카테고리 1"
+                    }, 
+                    { 
+                        id: "category2",  
+                        systemId: "",
+                        codeValue: "", 
+                        name: "카테고리 2"
+                    },
+                    { 
+                        id: "category3",  
+                        systemId: "",
+                        codeValue: "", 
+                        name: "카테고리 3"
+                    }],   
+                    name: "검색조건",
+                    systemId: "" 
+                },
+                {           
+                    depth: 2,
+                    id: "poc",
+                    leafs: [{ 
+                        id: "APP",  
+                        systemId: "",
+                        codeValue: "", 
+                        name: "APP"
+                    }, 
+                    { 
+                        id: "WEB",  
+                        systemId: "",
+                        codeValue: "", 
+                        name: "WEB"
+                    },
+                    { 
+                        id: "TV",  
+                        systemId: "",
+                        codeValue: "", 
+                        name: "TV"
+                    }],   
+                    name: "검색조건",
+                    systemId: "" 
+                }
+            ],
+            name: "",
+            systemId: ""  
+        }],
+        code: '0000',
+        detailMessage: 'success.',
+    });
+});
+
+// FAQ 목록 조회
+router.post('/api/faqs/list', function (req, res) {
+    const data = {
+        no:"1",
+        noId: "faq1",
+        categoryCd: "category1",
+        categoryNm: "카테고리 1",
+        title: "제목 1",
+        updateId: "admin",
+        updateDt: 1688207263,
+        viewYn: 1,
+        viewDt: 1688207263,
+        isAll: true,
+        pocList: ["APP", "WEB", "TV"]   
+    }
+    console.log(req.body)
+        res.status(200).json({
+            headers: {},
+            data: {
+                list: [1,2,3,4,5,6,7,8,9,10].map(item => ({
+                    ...data,
+                    no: item,
+                    noId: `faq${item}`,
+                    title: `제목 ${item}`
+                })),
+                totalCount: 10
+            },
+            code: '0000',
+            detailMessage: 'success.',
+        });
+});
+
+
 // 라우터 등록
 app.use('/', router);
 
