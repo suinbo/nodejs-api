@@ -5,32 +5,19 @@ const router = express.Router();
 // 관리자 정보 조회
 router.get('/getAdmins', async (req, res)=>
 {
+    const adminId = req.headers.adminid
     let res_get_admins= 
     {
         status_code : 500,
-        admins : [] 
+        admins : {} 
     };
 
     try
     {
-        const rows = await adminDBC.getAdmins();
+        const row = await adminDBC.getAdmins(adminId);
         res_get_admins.status_code = 200;
-        if(rows.length > 0)
         {
-            rows.forEach((admin)=>
-            {
-                res_get_admins.admins.push
-                ({
-                    id : admin.id,
-                    password : admin.password,
-                    name : admin.name,
-                    insertDt : admin.insertDt
-                });
-            });
-        }
-        else
-        {
-            console.log('사용자 없음');
+            res_get_admins.admins = row[0];
         }
     }
     catch(error)
@@ -39,16 +26,12 @@ router.get('/getAdmins', async (req, res)=>
     }
     finally
     {
-
-        //응답 
-        const result =  res_get_admins.admins.map(admin => ({
-            id: admin.id,
-            password: admin.password,
-            name: admin.name,
-            insertDt: admin.insertDt
-        }))
-
-        res.send(result);
+        res.send({
+            headers: {},
+            data: res_get_admins.admins,
+            code: '0000',
+            detailMessage: 'login success.',
+        });
     }
 });
 

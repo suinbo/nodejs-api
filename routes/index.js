@@ -3,12 +3,12 @@ const cors = require('cors');
 const app = express();
 const router = express.Router();
 
-// mysql 연동 
-const usersRouter = require('./adminRouter');
-app.use(`/users`, usersRouter);
-
 // CORS 허용 설정
 app.use(cors());
+
+// mysql 연동 
+const usersRouter = require('./adminRouter');
+app.use(`/admins`, usersRouter);
 
 // 라우터 정의
 router.get('/', function (req, res, next) {

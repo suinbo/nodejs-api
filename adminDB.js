@@ -12,12 +12,11 @@ const pool = mysql.createPool
   queueLimit: 0
 });
 
-const getAdmins = async ()=>
+const getAdmins = async (adminId)=>
 {
     const promisePool = pool.promise();
-    const [rows] = await promisePool.query('select * from admin;');
-    console.log(rows);
-    return rows;
+    const [row] = await promisePool.query(`select * from admin where id = '${adminId}';`);
+    return row;
 };
 
 module.exports = 
