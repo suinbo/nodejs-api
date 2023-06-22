@@ -6,7 +6,7 @@ const router = express.Router();
 // CORS 허용 설정
 app.use(cors());
 
-// mysql 연동 
+// mysql 연동
 const usersRouter = require('./adminRouter');
 app.use(`/admins`, usersRouter);
 
@@ -29,10 +29,52 @@ router.get('/api/menus/top', function (req, res) {
             {
                 id: 'site',
                 menuNm: '사이트',
+                menuId: 'site',
+                viewYn: true,
+                depth: 1,
+                leafs: [
+                    {
+                        id: 'ST110',
+                        parentId: 'ST100',
+                        menuNm: 'FAQ 목록',
+                        menuId: 'faqList',
+                        uxId: 'ST00110',
+                        url: '/site/faq/faqlist',
+                        viewYn: true,
+                        depth: 2,
+                        leafs: [],
+                    },
+                    {
+                        id: 'ST120',
+                        parentId: 'ST100',
+                        menuNm: '자주 찾는 질문 관리',
+                        menuId: 'faqMgmt',
+                        uxId: 'ST00120',
+                        url: '/site/faq/faqMgmt',
+                        viewYn: true,
+                        depth: 2,
+                        leafs: [],
+                    },
+                ],
             },
             {
                 id: 'operation',
                 menuNm: '편성/운영',
+                menuId: 'operation',
+                viewYn: true,
+                depth: 1,
+                leafs: [
+                    {
+                        id: 'OP100',
+                        parentId: 'operation',
+                        menuNm: '큐레이션',
+                        menuId: 'curation',
+                        url: '/operation/curation',
+                        viewYn: true,
+                        depth: 1,
+                        leafs: [],
+                    },
+                ],
             },
         ],
         code: '0000',
@@ -101,6 +143,7 @@ router.get('/api/menus/side/operation/list', function (req, res) {
                 parentId: 'operation',
                 menuNm: '큐레이션',
                 menuId: 'curation',
+                url: '/operation/curation',
                 viewYn: true,
                 depth: 1,
                 leafs: [],
@@ -250,80 +293,88 @@ router.get('/api/languages', function (req, res) {
 router.get('/api/opcodes/ST00110/list', function (req, res) {
     res.status(200).json({
         headers: {},
-        data: [{
-            depth: 1,
-            id: "opcode",
-            leafs: [
-                {           
-                    depth: 2,
-                    id: "search",
-                    leafs: [{ 
-                        id: "title",  
-                        systemId: "",
-                        codeValue: "", 
-                        name: "제목"
-                    }, 
-                    { 
-                        id: "id",  
-                        systemId: "",
-                        codeValue: "", 
-                        name: "아이디"
-                    }],   
-                    name: "검색조건",
-                    systemId: "" 
-                },
-                {           
-                    depth: 2,
-                    id: "category",
-                    leafs: [{ 
-                        id: "category1",  
-                        systemId: "",
-                        codeValue: "", 
-                        name: "카테고리 1"
-                    }, 
-                    { 
-                        id: "category2",  
-                        systemId: "",
-                        codeValue: "", 
-                        name: "카테고리 2"
+        data: [
+            {
+                depth: 1,
+                id: 'opcode',
+                leafs: [
+                    {
+                        depth: 2,
+                        id: 'search',
+                        leafs: [
+                            {
+                                id: 'title',
+                                systemId: '',
+                                codeValue: '',
+                                name: '제목',
+                            },
+                            {
+                                id: 'id',
+                                systemId: '',
+                                codeValue: '',
+                                name: '아이디',
+                            },
+                        ],
+                        name: '검색조건',
+                        systemId: '',
                     },
-                    { 
-                        id: "category3",  
-                        systemId: "",
-                        codeValue: "", 
-                        name: "카테고리 3"
-                    }],   
-                    name: "검색조건",
-                    systemId: "" 
-                },
-                {           
-                    depth: 2,
-                    id: "poc",
-                    leafs: [{ 
-                        id: "APP",  
-                        systemId: "",
-                        codeValue: "", 
-                        name: "APP"
-                    }, 
-                    { 
-                        id: "WEB",  
-                        systemId: "",
-                        codeValue: "", 
-                        name: "WEB"
+                    {
+                        depth: 2,
+                        id: 'category',
+                        leafs: [
+                            {
+                                id: 'category1',
+                                systemId: '',
+                                codeValue: '',
+                                name: '카테고리 1',
+                            },
+                            {
+                                id: 'category2',
+                                systemId: '',
+                                codeValue: '',
+                                name: '카테고리 2',
+                            },
+                            {
+                                id: 'category3',
+                                systemId: '',
+                                codeValue: '',
+                                name: '카테고리 3',
+                            },
+                        ],
+                        name: '검색조건',
+                        systemId: '',
                     },
-                    { 
-                        id: "TV",  
-                        systemId: "",
-                        codeValue: "", 
-                        name: "TV"
-                    }],   
-                    name: "검색조건",
-                    systemId: "" 
-                }
-            ],
-            name: "",
-            systemId: ""  
-        }],
+                    {
+                        depth: 2,
+                        id: 'poc',
+                        leafs: [
+                            {
+                                id: 'APP',
+                                systemId: '',
+                                codeValue: '',
+                                name: 'APP',
+                            },
+                            {
+                                id: 'WEB',
+                                systemId: '',
+                                codeValue: '',
+                                name: 'WEB',
+                            },
+                            {
+                                id: 'TV',
+                                systemId: '',
+                                codeValue: '',
+                                name: 'TV',
+                            },
+                        ],
+                        name: '검색조건',
+                        systemId: '',
+                    },
+                ],
+                name: '',
+                systemId: '',
+            },
+        ],
         code: '0000',
         detailMessage: 'success.',
     });
@@ -332,35 +383,34 @@ router.get('/api/opcodes/ST00110/list', function (req, res) {
 // FAQ 목록 조회
 router.post('/api/faqs/list', function (req, res) {
     const data = {
-        no:"1",
-        noId: "faq1",
-        categoryCd: "category1",
-        categoryNm: "카테고리 1",
-        title: "제목 1",
-        updateId: "admin",
+        no: '1',
+        noId: 'faq1',
+        categoryCd: 'category1',
+        categoryNm: '카테고리 1',
+        title: '제목 1',
+        updateId: 'admin',
         updateDt: 1688207263,
         viewYn: 1,
         viewDt: 1688207263,
         isAll: true,
-        pocList: ["APP", "WEB", "TV"]   
-    }
-    console.log(req.body)
-        res.status(200).json({
-            headers: {},
-            data: {
-                list: [1,2,3,4,5,6,7,8,9,10].map(item => ({
-                    ...data,
-                    no: item,
-                    noId: `faq${item}`,
-                    title: `제목 ${item}`
-                })),
-                totalCount: 10
-            },
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        pocList: ['APP', 'WEB', 'TV'],
+    };
+    console.log(req.body);
+    res.status(200).json({
+        headers: {},
+        data: {
+            list: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((item) => ({
+                ...data,
+                no: item,
+                noId: `faq${item}`,
+                title: `제목 ${item}`,
+            })),
+            totalCount: 10,
+        },
+        code: '0000',
+        detailMessage: 'success.',
+    });
 });
-
 
 // 라우터 등록
 app.use('/', router);
