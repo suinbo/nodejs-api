@@ -19,7 +19,30 @@ const getAdmins = async (adminId)=>
     return row;
 };
 
+const getTopMenus = async ()=>
+{
+    const promisePool = pool.promise();
+    const [row] = await promisePool.query(`select * from menu where depth = 1;`);
+    return row;
+};
+
+const getSideMenus = async (parentId)=>
+{
+    const promisePool = pool.promise();
+    const [allMenus] = await promisePool.query(`select * from menu;`);
+    const [sideMenus] = await promisePool.query(`select * from menu where parentId = '${parentId}';`);
+
+    const result = sideMenus.map(menu => ({
+      ...menu,
+      leafs: allMenus.filter(data => data.parentId == menu.id).map(item => ({ ...item, leafs: []}))
+    }))
+    
+    return result;
+};
+
 module.exports = 
 {
-  getAdmins
+  getAdmins,
+  getTopMenus,
+  getSideMenus
 };
