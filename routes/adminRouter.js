@@ -96,4 +96,101 @@ router.post('/getSideMenus', async (req, res)=>
     }
 });
 
+// 트리 메뉴 조회
+router.get('/getTreeMenus', async (req, res)=>
+{
+    
+    let res_get_menus= 
+    {
+        status_code : 500,
+        menus : {} 
+    };
+
+    try
+    {
+        const row = await adminDBC.getTreeMenus();
+        res_get_menus.status_code = 200;
+        res_get_menus.menus = row
+    }
+    catch(error)
+    {
+        console.log(error.message);
+    }
+    finally
+    {
+        res.send({
+            headers: {},
+            data: res_get_menus.menus,
+            code: '0000',
+            detailMessage: 'success.',
+        });
+    }
+});
+
+// 메뉴 상세 조회
+router.get('/getMenuDetails', async (req, res)=>
+{
+    let res_get_details= 
+    {
+        status_code : 500,
+        data : {} 
+    };
+
+    try
+    {
+        // 메뉴 1개 당 region 별 언어 매핑 
+        const row = await adminDBC.getMenuDetails(req.query.menuId);
+        res_get_details.status_code = 200;
+        res_get_details.data = { 
+            id: row[0].menuId,
+            menuNm: row[0].menuNm,
+            orderNo: row[0].orderNo,
+            langList: row.map(region => ({ regionCd: region.regionCd, regionNm: region.regionNm, languageNm: region.mlNm })),
+        }
+    }
+    catch(error)
+    {
+        console.log(error.message);
+    }
+    finally
+    {
+        res.send({
+            headers: {},
+            data: res_get_details.data,
+            code: '0000',
+            detailMessage: 'success.',
+        });
+    }
+});
+
+// 리전 목록 조회
+router.get('/getRegions', async (req, res)=>
+{
+    let res_get_regions= 
+    {
+        status_code : 500,
+        data : {} 
+    };
+
+    try
+    {
+        const row = await adminDBC.getRegions();
+        res_get_regions.status_code = 200;
+        res_get_regions.data = row
+    }
+    catch(error)
+    {
+        console.log(error.message);
+    }
+    finally
+    {
+        res.send({
+            headers: {},
+            data: res_get_regions.data,
+            code: '0000',
+            detailMessage: 'success.',
+        });
+    }
+});
+
 module.exports = router;

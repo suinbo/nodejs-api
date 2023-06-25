@@ -1,6 +1,6 @@
 const mysql = require('mysql2');
 
-// Create the connection pool. The pool-specific settings are the defaults
+// Create the connection pool
 const pool = mysql.createPool
 ({
   host: 'localhost',
@@ -32,17 +32,68 @@ const getSideMenus = async (parentId)=>
     const [allMenus] = await promisePool.query(`select * from menu;`);
     const [sideMenus] = await promisePool.query(`select * from menu where parentId = '${parentId}';`);
 
-    const result = sideMenus.map(menu => ({
+    return sideMenus.map(menu => ({
       ...menu,
-      leafs: allMenus.filter(data => data.parentId == menu.id).map(item => ({ ...item, leafs: []}))
-    }))
+      leafs: allMenus.filter(data => data.parentId == menu.id).map(item => ({ ...item, leafs: [] }))
+    }));
+};
+
+/** 트리 메뉴 조회 */
+const getTreeMenus = async ()=>
+{
+    const promisePool = pool.promise();
+    const [row] = await promisePool.query(`select * from menu;`);
+
+    const buildMenuTree = (menuData) => {
+      const menuMap = {}
+      const rootMenu = []
     
-    return result;
+      // Create a menuMap for efficient lookup
+      for (const menu of menuData) {
+        menu.leafs = []
+        menuMap[menu.id] = menu
+      }
+    
+      // Build the menu tree
+      for (const menu of menuData) {
+        const parentId = menu.parentId
+        if (parentId) {
+          const parentMenu = menuMap[parentId]
+          parentMenu.leafs.push(menu)
+        } else {
+          rootMenu.push(menu)
+        }
+      }
+    
+      return rootMenu
+    }
+    return buildMenuTree(row);
+};
+
+const getMenuDetails = async (menuId)=>
+{
+    const promisePool = pool.promise();
+    const [row] = await promisePool.query(
+      `SELECT * FROM menu a 
+       join menulanguage b on a.id = b.mId 
+       join region c on c.rdx = b.rdx
+       where a.id = '${menuId}';`);
+    return row;
+};
+
+const getRegions = async ()=>
+{
+    const promisePool = pool.promise();
+    const [row] = await promisePool.query(`select * from region;`);
+    return row;
 };
 
 module.exports = 
 {
   getAdmins,
   getTopMenus,
-  getSideMenus
+  getSideMenus,
+  getTreeMenus,
+  getMenuDetails,
+  getRegions
 };
