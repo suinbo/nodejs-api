@@ -88,6 +88,13 @@ const getRegions = async ()=>
     return row;
 };
 
+const getSystemCode = async (uxId)=>
+{
+    const promisePool = pool.promise();
+    const [row] = await promisePool.query(`select * from code where uxId = '${uxId}';`);
+    return row;
+};
+
 module.exports = 
 {
   getAdmins,
@@ -95,5 +102,6 @@ module.exports =
   getSideMenus,
   getTreeMenus,
   getMenuDetails,
-  getRegions
+  getRegions,
+  getSystemCode
 };

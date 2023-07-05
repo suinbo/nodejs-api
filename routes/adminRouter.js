@@ -193,4 +193,68 @@ router.get('/getRegions', async (req, res)=>
     }
 });
 
+// 시스템 코드 목록 조회
+router.get('/getSystemCode', async (req, res)=>
+{
+    let res_get_code= 
+    {
+        status_code : 500,
+        data : {} 
+    };
+
+    try
+    {
+        const row = await adminDBC.getSystemCode(req.query.uxId);
+
+        //depth 만들기
+        const buildMenuTree = (codeData) => {
+            const codeMap = {}
+            const rootCode = []
+          
+            // Create a menuMap for efficient lookup
+            for (const code of codeData) {
+              code.leafs = []
+              codeMap[code.value] = code
+            }
+          
+            // Build the menu tree
+            for (const code of codeData) {
+             const data = {
+                id: code.id,
+                name: code.name,
+                value: code.value,
+                depth: code.depth,
+                leafs: code.leafs ?? []
+             } 
+
+              const categoryId = code.category
+              if (categoryId) {
+                const parentCode = codeMap[categoryId]
+                parentCode.leafs.push(data)
+              } else {
+                rootCode.push(data)
+              }
+            }
+          
+            return rootCode
+        }
+        
+        res_get_code.status_code = 200;
+        res_get_code.data = buildMenuTree(row)
+    }
+    catch(error)
+    {
+        console.log(error.message);
+    }
+    finally
+    {
+        res.send({
+            headers: {},
+            data: res_get_code.data,
+            code: '0000',
+            detailMessage: 'success.',
+        });
+    }
+});
+
 module.exports = router;
