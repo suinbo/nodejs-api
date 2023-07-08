@@ -14,7 +14,7 @@ const pool = mysql.createPool
 
 const getAdmins = async (adminId)=>
 {
-    const promisePool = pool.promise();
+    const promisePool = pool.promise(); // promise 기반 MySQL 연결 풀 생성
     const [row] = await promisePool.query(`select * from admin where id = '${adminId}';`);
     return row;
 };
@@ -95,6 +95,15 @@ const getSystemCode = async (uxId)=>
     return row;
 };
 
+const getContents = async (params)=>
+{
+    const { type, keywords, pageNo } = params
+    const promisePool = pool.promise();
+    const [totalCount] = await promisePool.query(`select count(*) as totalCount from contents where ${type} like '%${keywords}%';`);
+    const [row] = await promisePool.query(`select * from contents where ${type} like '%${keywords}%' limit 10 offset ${(pageNo - 1) * 10};`);
+    return { totalCount, row };
+};
+
 module.exports = 
 {
   getAdmins,
@@ -103,5 +112,6 @@ module.exports =
   getTreeMenus,
   getMenuDetails,
   getRegions,
-  getSystemCode
+  getSystemCode,
+  getContents
 };

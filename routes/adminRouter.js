@@ -257,4 +257,37 @@ router.get('/getSystemCode', async (req, res)=>
     }
 });
 
+// 컨텐츠 목록 조회
+router.get('/getContents', async (req, res)=>
+{
+    let res_get_contents = 
+    {
+        status_code : 500,
+        data : {} 
+    };
+
+    try
+    {
+        const { totalCount, row } = await adminDBC.getContents(req.query);
+        res_get_contents.status_code = 200;
+        res_get_contents.data = {
+            ...totalCount[0],
+            list: row
+        }
+    }
+    catch(error)
+    {
+        console.log(error.message);
+    }
+    finally
+    {
+        res.send({
+            headers: {},
+            data: res_get_contents.data,
+            code: '0000',
+            detailMessage: 'success.',
+        });
+    }
+});
+
 module.exports = router;
