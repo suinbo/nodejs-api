@@ -27,7 +27,6 @@ router.get('/getAdmins', async (req, res)=>
     finally
     {
         res.send({
-            headers: {},
             data: res_get_admins.admins,
             code: '0000',
             detailMessage: 'success.',
@@ -57,7 +56,6 @@ router.get('/getTopMenus', async (req, res)=>
     finally
     {
         res.send({
-            headers: {},
             data: res_get_menus.menus,
             code: '0000',
             detailMessage: 'success.',
@@ -88,7 +86,6 @@ router.post('/getSideMenus', async (req, res)=>
     finally
     {
         res.send({
-            headers: {},
             data: res_get_menus.menus,
             code: '0000',
             detailMessage: 'success.',
@@ -119,7 +116,6 @@ router.get('/getTreeMenus', async (req, res)=>
     finally
     {
         res.send({
-            headers: {},
             data: res_get_menus.menus,
             code: '0000',
             detailMessage: 'success.',
@@ -155,7 +151,6 @@ router.get('/getMenuDetails', async (req, res)=>
     finally
     {
         res.send({
-            headers: {},
             data: res_get_details.data,
             code: '0000',
             detailMessage: 'success.',
@@ -185,7 +180,6 @@ router.get('/getRegions', async (req, res)=>
     finally
     {
         res.send({
-            headers: {},
             data: res_get_regions.data,
             code: '0000',
             detailMessage: 'success.',
@@ -249,7 +243,6 @@ router.get('/getSystemCode', async (req, res)=>
     finally
     {
         res.send({
-            headers: {},
             data: res_get_code.data,
             code: '0000',
             detailMessage: 'success.',
@@ -282,8 +275,69 @@ router.get('/getContents', async (req, res)=>
     finally
     {
         res.send({
-            headers: {},
             data: res_get_contents.data,
+            code: '0000',
+            detailMessage: 'success.',
+        });
+    }
+});
+
+//FAQ 목록 조회
+router.post('/getFAQs', async (req, res)=>
+{
+    let res_get_faqs = 
+    {
+        status_code : 500,
+        data : {} 
+    };
+
+    try
+    {
+        const { totalCount, row } = await adminDBC.getFAQs(req.body);
+        res_get_faqs.status_code = 200;
+        res_get_faqs.data = {
+            ...totalCount[0],
+            list: row.map(item => ({ ...item, poc: item.poc.split(",") }))
+        }
+    }
+    catch(error)
+    {
+        console.log(error.message);
+    }
+    finally
+    {
+        res.send({
+            data: res_get_faqs.data,
+            code: '0000',
+            detailMessage: 'success.',
+        });
+    }
+});
+
+//FAQ 상세 조회
+router.get('/getFAQDetails', async (req, res)=>
+{
+    
+    let res_get_faqDetails = 
+    {
+        status_code : 500,
+        data : {} 
+    };
+
+    try
+    {
+        const row = await adminDBC.getFAQDetails(req.query.noId);
+        res_get_faqDetails.status_code = 200;
+        res_get_faqDetails.data = { ...row, poc: row.poc.split(",") }
+    }
+    catch(error)
+    {
+        console.log(error.message);
+    }
+    finally
+    {
+        res.send({
+            data: res_get_faqDetails.data,
             code: '0000',
             detailMessage: 'success.',
         });

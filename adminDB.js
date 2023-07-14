@@ -104,6 +104,31 @@ const getContents = async (params)=>
     return { totalCount, row };
 };
 
+const getFAQs = async (params)=>
+{
+  
+    const { sType, search, page, order, orderType, category, viewYn } = params
+    const promisePool = pool.promise();
+    const [totalCount] = await promisePool.query(`select count(*) as totalCount from faq where ${sType} like '%${search}%';`);
+    const [row] = await promisePool.query(
+      `select a.*, b.name as category from faq a
+      join code b on a.category = b.value
+      where ${sType} like '%${search}%' 
+      ${category.length ? `and a.category in (${category.map(c => `'${c}'`).join(",")})`: ""}
+      ${viewYn ? `and a.viewYn = ${viewYn}`: ""}
+      order by ${orderType} ${order} 
+      limit 10 offset ${(page - 1) * 10};`
+    );
+    return { totalCount, row };
+};
+
+const getFAQDetails = async (noId)=>
+{
+    const promisePool = pool.promise();
+    const [row] = await promisePool.query(`select * from faq where noId='${noId}';`);
+    return row[0];
+};
+
 module.exports = 
 {
   getAdmins,
@@ -113,5 +138,7 @@ module.exports =
   getMenuDetails,
   getRegions,
   getSystemCode,
-  getContents
+  getContents,
+  getFAQs,
+  getFAQDetails
 };
