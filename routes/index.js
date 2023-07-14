@@ -289,38 +289,6 @@ router.get('/api/languages', function (req, res) {
     });
 });
 
-// FAQ 목록 조회
-router.post('/api/faqs/list', function (req, res) {
-    const data = {
-        no: '1',
-        noId: 'faq1',
-        categoryCd: 'category1',
-        categoryNm: '카테고리 1',
-        title: '제목 1',
-        updateId: 'admin',
-        updateDt: 1688207263,
-        viewYn: 1,
-        viewDt: 1688207263,
-        isAll: true,
-        pocList: ['APP', 'WEB', 'TV'],
-    };
-    console.log(req.body);
-    res.status(200).json({
-        headers: {},
-        data: {
-            list: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((item) => ({
-                ...data,
-                no: item,
-                noId: `faq${item}`,
-                title: `제목 ${item}`,
-            })),
-            totalCount: 10,
-        },
-        code: '0000',
-        detailMessage: 'success.',
-    });
-});
-
 // 라우터 등록
 app.use('/', router);
 
