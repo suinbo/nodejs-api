@@ -1,5 +1,8 @@
 const mysql = require('mysql2');
 
+// 프로미스 기반으로 쿼리 결과에 접근
+const mysqlPromise = require('mysql2/promise');
+
 // Create the connection pool
 const pool = mysql.createPool
 ({
@@ -11,6 +14,14 @@ const pool = mysql.createPool
   connectionLimit: 10,
   queueLimit: 0
 });
+
+// MySQL 연결 설정
+const connectionConfig = {
+  host: 'localhost',
+  user: 'root',
+  password: '1234',
+  database: 'office',
+};
 
 const getAdmins = async (adminId)=>
 {
@@ -129,6 +140,63 @@ const getFAQDetails = async (noId)=>
     return row[0];
 };
 
+const postFAQDetails = async (params)=>
+{
+  const { title, category, viewYn, poc, viewDt, content, reserveYn, updateId } = params
+
+    try {
+      // MySQL 연결
+      const connection = await mysqlPromise.createConnection(connectionConfig);
+  
+      // INSERT 문 쿼리
+      const query = `insert into faq (title, category, viewYn, poc, viewDt, content, reserveYn, updateDt, updateId) 
+      values (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  
+      // INSERT 문 파라미터
+      const values = [title, category, viewYn, poc.join(","), viewDt, content, reserveYn, new Date(), updateId]
+  
+      // INSERT 문 실행
+      const [result] = await connection.query(query, values);
+  
+      // 삽입된 행의 ID 확인
+      console.log('Inserted ID:', result.insertId);
+  
+      // 연결 종료
+      connection.end();
+    } catch (error) {
+      console.error('Error:', error);
+    }
+};
+
+const putFAQDetails = async (params)=>
+{
+  const { noId, title, category, viewYn, poc, viewDt, content, reserveYn, updateId } = params
+
+    try {
+      const connection = await mysqlPromise.createConnection(connectionConfig);
+
+      const query = `UPDATE faq
+      SET title = ?, category = ?, viewYn = ?, poc = ?, viewDt = ?, content = ?, reserveYn = ?, updateId = ?
+      WHERE noId = ?`;
+
+      const values = [title, category, viewYn, poc.join(','), viewDt, content, reserveYn, updateId, noId];
+  
+      await connection.query(query, values);
+      
+      connection.end();
+    } catch (error) {
+      console.error('Error:', error);
+    }
+};
+
+const getPocFAQs = async (pocType) =>
+{
+    const promisePool = pool.promise();
+    const [totalCount] = await promisePool.query(`select count(*) as totalCount from faq where poc like '%${pocType}%';`);
+    const [row] = await promisePool.query(`select * from faq where poc like '%${pocType}%';`);
+    return { totalCount, row };
+};
+
 module.exports = 
 {
   getAdmins,
@@ -140,5 +208,8 @@ module.exports =
   getSystemCode,
   getContents,
   getFAQs,
-  getFAQDetails
+  getFAQDetails,
+  postFAQDetails,
+  putFAQDetails,
+  getPocFAQs
 };

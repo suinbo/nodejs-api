@@ -297,7 +297,7 @@ router.post('/getFAQs', async (req, res)=>
         res_get_faqs.status_code = 200;
         res_get_faqs.data = {
             ...totalCount[0],
-            list: row.map(item => ({ ...item, poc: item.poc.split(",") }))
+            list: row
         }
     }
     catch(error)
@@ -315,7 +315,7 @@ router.post('/getFAQs', async (req, res)=>
 });
 
 //FAQ 상세 조회
-router.get('/getFAQDetails', async (req, res)=>
+router.get('/faqDetails', async (req, res)=>
 {
     
     let res_get_faqDetails = 
@@ -338,6 +338,95 @@ router.get('/getFAQDetails', async (req, res)=>
     {
         res.send({
             data: res_get_faqDetails.data,
+            code: '0000',
+            detailMessage: 'success.',
+        });
+    }
+});
+
+//FAQ 상세 수정
+router.put('/faqDetails/:noId', async (req, res)=> 
+{
+    let res_get_faqDetails = 
+    {
+        status_code : 500,
+        data : {} 
+    };
+
+    try
+    {
+        await adminDBC.putFAQDetails({ ...req.body, noId: req.params.noId ,updateId: req.headers.adminid });
+        res_get_faqDetails.status_code = 200;
+    }
+    catch(error)
+    {
+        console.log(error.message);
+    }
+    finally
+    {
+        res.send({
+            data: res_get_faqDetails.data,
+            code: '0000',
+            detailMessage: 'success.',
+        });
+    }
+})
+
+//FAQ 등록
+router.post('/faqDetails', async (req, res)=>
+{
+    let res_get_faqDetails = 
+    {
+        status_code : 500,
+        data : {} 
+    };
+
+    try
+    {
+        await adminDBC.postFAQDetails({ ...req.body, updateId: req.headers.adminid });
+        res_get_faqDetails.status_code = 200;
+    }
+    catch(error)
+    {
+        console.log(error.message);
+    }
+    finally
+    {
+        res.send({
+            data: res_get_faqDetails.data,
+            code: '0000',
+            detailMessage: 'success.',
+        });
+    }
+});
+
+//POC별 FAQ 목록 조회
+router.get('/getPocFAQs', async (req, res)=>
+{
+    
+    let res_get_pocFaqs = 
+    {
+        status_code : 500,
+        data : {} 
+    };
+
+    try
+    {
+        const { totalCount, row } = await adminDBC.getPocFAQs(req.query.type);
+        res_get_pocFaqs.status_code = 200;
+        res_get_pocFaqs.data = { 
+            ...totalCount[0], 
+            list: row
+        }
+    }
+    catch(error)
+    {
+        console.log(error.message);
+    }
+    finally
+    {
+        res.send({
+            data: res_get_pocFaqs.data,
             code: '0000',
             detailMessage: 'success.',
         });
