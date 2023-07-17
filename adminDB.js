@@ -118,7 +118,7 @@ const getContents = async (params)=>
 const getFAQs = async (params)=>
 {
   
-    const { sType, search, page, order, orderType, category, viewYn } = params
+    const { sType, search, page, order, orderType, category, viewYn, poc } = params
     const promisePool = pool.promise();
     const [totalCount] = await promisePool.query(`select count(*) as totalCount from faq where ${sType} like '%${search}%';`);
     const [row] = await promisePool.query(
@@ -127,7 +127,8 @@ const getFAQs = async (params)=>
       where ${sType} like '%${search}%' 
       ${category.length ? `and a.category in (${category.map(c => `'${c}'`).join(",")})`: ""}
       ${viewYn ? `and a.viewYn = ${viewYn}`: ""}
-      order by ${orderType} ${order} 
+      ${poc ? `and a.poc like '%${poc}%'` : ""}
+      ${orderType ? `order by ${orderType} ${order}` : ""}
       limit 10 offset ${(page - 1) * 10};`
     );
     return { totalCount, row };
@@ -149,11 +150,15 @@ const postFAQDetails = async (params)=>
       const connection = await mysqlPromise.createConnection(connectionConfig);
   
       // INSERT 문 쿼리
-      const query = `insert into faq (title, category, viewYn, poc, viewDt, content, reserveYn, updateDt, updateId) 
-      values (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      const query = `insert into faq (orderNo, title, category, viewYn, poc, viewDt, content, reserveYn, updateDt, updateId) 
+      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+      const subquery = "SELECT MAX(orderNo) as maxOrderNo FROM faq";
+      const [rows] = await connection.query(subquery);
+      const maxOrderNo = rows[0].maxOrderNo;
   
       // INSERT 문 파라미터
-      const values = [title, category, viewYn, poc.join(","), viewDt, content, reserveYn, new Date(), updateId]
+      const values = [maxOrderNo + 1, title, category, viewYn, poc.join(","), viewDt, content, reserveYn, new Date(), updateId]
   
       // INSERT 문 실행
       const [result] = await connection.query(query, values);
@@ -189,12 +194,84 @@ const putFAQDetails = async (params)=>
     }
 };
 
-const getPocFAQs = async (pocType) =>
+const getTopFAQs = async (pocType) =>
 {
     const promisePool = pool.promise();
-    const [totalCount] = await promisePool.query(`select count(*) as totalCount from faq where poc like '%${pocType}%';`);
-    const [row] = await promisePool.query(`select * from faq where poc like '%${pocType}%';`);
+    const [totalCount] = await promisePool.query(`select count(*) as totalCount from faq where poc like '%${pocType}%' and topYn = 1;`);
+    const [row] = await promisePool.query(`
+      select a.*, b.name as category from faq a
+      join code b on a.category = b.value
+      where poc like '%${pocType}%' and topYn = 1 order by orderNo desc;
+      `);
     return { totalCount, row };
+};
+
+const putTopFAQs = async (params) =>
+{
+  try {
+    const connection = await mysqlPromise.createConnection(connectionConfig);
+
+    const query = `update faq set topYn = 1 where noId in (?)`;
+
+    const values = [params.ids];
+
+    await connection.query(query, values);
+    
+    connection.end();
+  } catch (error) {
+    console.error('Error:', error);
+  }
+};
+
+const putTopFAQsOrder = async (params) =>
+{
+  try {
+
+    const connection = await mysqlPromise.createConnection(connectionConfig);
+
+    const query = `update faq set orderNo = case when orderNo = ? then ? else ? end where orderNo IN (?, ?);`;
+      
+    const values = [params.noId, params.newOrderNo, params.noId, params.noId, params.newOrderNo];
+
+    await connection.query(query, values);
+
+    connection.end();
+  } catch (error) {
+    console.error('Error:', error);
+  }
+};
+
+const deleteFAQs = async (noId) =>
+{
+  try {
+    const connection = await mysqlPromise.createConnection(connectionConfig);
+
+    const query = `delete from faq where noId = ?;`;
+
+    await connection.query(query, noId);
+
+    connection.end();
+  } catch (error) {
+    console.error('Error:', error);
+  }
+};
+
+const deleteTopFAQs = async (params) =>
+{
+  try {
+
+    const connection = await mysqlPromise.createConnection(connectionConfig);
+
+    const query = `update faq set topYn = 0 where noId in (?);`;
+
+    const values = [params.ids];
+
+    await connection.query(query, values);
+
+    connection.end();
+  } catch (error) {
+    console.error('Error:', error);
+  }
 };
 
 module.exports = 
@@ -211,5 +288,9 @@ module.exports =
   getFAQDetails,
   postFAQDetails,
   putFAQDetails,
-  getPocFAQs
+  getTopFAQs,
+  putTopFAQs,
+  putTopFAQsOrder,
+  deleteTopFAQs,
+  deleteFAQs
 };

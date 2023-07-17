@@ -400,8 +400,36 @@ router.post('/faqDetails', async (req, res)=>
     }
 });
 
+//FAQ 개별 삭제
+router.delete('/faqDetails/:noId', async (req, res)=> 
+{
+    let res_get_faqDetails = 
+    {
+        status_code : 500,
+        data : {} 
+    };
+
+    try
+    {
+        await adminDBC.deleteFAQs(req.params.noId);
+        res_get_faqDetails.status_code = 200;
+    }
+    catch(error)
+    {
+        console.log(error.message);
+    }
+    finally
+    {
+        res.send({
+            data: res_get_faqDetails.data,
+            code: '0000',
+            detailMessage: 'success.',
+        });
+    }
+})
+
 //POC별 FAQ 목록 조회
-router.get('/getPocFAQs', async (req, res)=>
+router.get('/getTopFAQs', async (req, res)=>
 {
     
     let res_get_pocFaqs = 
@@ -412,7 +440,7 @@ router.get('/getPocFAQs', async (req, res)=>
 
     try
     {
-        const { totalCount, row } = await adminDBC.getPocFAQs(req.query.type);
+        const { totalCount, row } = await adminDBC.getTopFAQs(req.query.type);
         res_get_pocFaqs.status_code = 200;
         res_get_pocFaqs.data = { 
             ...totalCount[0], 
@@ -432,5 +460,90 @@ router.get('/getPocFAQs', async (req, res)=>
         });
     }
 });
+
+//POC 별 FAQ(자주찾는질문) 추가
+router.put('/topFAQsDetails/:poc', async (req, res)=> 
+{
+    let res_get_faqDetails = 
+    {
+        status_code : 500,
+        data : {} 
+    };
+
+    try
+    {
+        await adminDBC.putTopFAQs(req.body)
+        res_get_faqDetails.status_code = 200;
+    }
+    catch(error)
+    {
+        console.log(error.message);
+    }
+    finally
+    {
+        res.send({
+            data: res_get_faqDetails.data,
+            code: '0000',
+            detailMessage: 'success.',
+        });
+    }
+})
+
+//POC 별 FAQ 순서 변경
+router.post('/topFAQsDetails/order', async (req, res)=> 
+{
+    let res_get_faqDetails = 
+    {
+        status_code : 500,
+        data : {} 
+    };
+
+    try
+    {
+        await adminDBC.putTopFAQsOrder(req.body)
+        res_get_faqDetails.status_code = 200;
+    }
+    catch(error)
+    {
+        console.log(error.message);
+    }
+    finally
+    {
+        res.send({
+            data: res_get_faqDetails.data,
+            code: '0000',
+            detailMessage: 'success.',
+        });
+    }
+})
+
+//POC 별 FAQ 삭제
+router.put('/topFAQsDetails', async (req, res)=> 
+{
+    let res_get_faqDetails = 
+    {
+        status_code : 500,
+        data : {} 
+    };
+
+    try
+    {
+        await adminDBC.deleteTopFAQs(req.body)
+        res_get_faqDetails.status_code = 200;
+    }
+    catch(error)
+    {
+        console.log(error.message);
+    }
+    finally
+    {
+        res.send({
+            data: res_get_faqDetails.data,
+            code: '0000',
+            detailMessage: 'success.',
+        });
+    }
+})
+
 
 module.exports = router;
