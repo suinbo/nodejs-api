@@ -23,10 +23,52 @@ const connectionConfig = {
   database: 'office',
 };
 
+const postLogin = async (params)=>
+{
+    const { accessId, secretPw } = params
+
+    const promisePool = pool.promise(); // promise 기반 MySQL 연결 풀 생성
+    
+    const query = `select * from admin where id = ? and password = ? ;`;
+
+    const values = [accessId, secretPw];
+
+    const [row] = await promisePool.query(query, values);
+    return row;
+};
+
+const getRegions = async ()=>
+{
+    const promisePool = pool.promise();
+    const [row] = await promisePool.query(`select * from region;`);
+    return row;
+};
+
+const getLanguages = async ()=>
+{
+    const promisePool = pool.promise(); 
+    const [row] = await promisePool.query(`select * from language;`);
+    return row;
+};
+
+const getTimezones = async ()=>
+{
+    const promisePool = pool.promise(); 
+    const [row] = await promisePool.query(`select * from timezone;`);
+    return row;
+};
+
 const getAdmins = async (adminId)=>
 {
-    const promisePool = pool.promise(); // promise 기반 MySQL 연결 풀 생성
+    const promisePool = pool.promise(); 
     const [row] = await promisePool.query(`select * from admin where id = '${adminId}';`);
+    return row;
+};
+
+const getAccessHistory = async (adminId)=>
+{
+    const promisePool = pool.promise(); 
+    const [row] = await promisePool.query(`select * from accesshistory where adminId = '${adminId}';`);
     return row;
 };
 
@@ -92,12 +134,6 @@ const getMenuDetails = async (menuId)=>
     return row;
 };
 
-const getRegions = async ()=>
-{
-    const promisePool = pool.promise();
-    const [row] = await promisePool.query(`select * from region;`);
-    return row;
-};
 
 const getSystemCode = async (uxId)=>
 {
@@ -276,7 +312,11 @@ const deleteTopFAQs = async (params) =>
 
 module.exports = 
 {
+  postLogin,
+  getLanguages,
+  getTimezones,
   getAdmins,
+  getAccessHistory,
   getTopMenus,
   getSideMenus,
   getTreeMenus,
