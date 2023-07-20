@@ -9,7 +9,7 @@ const pool = mysql.createPool
   host: 'localhost',
   user: 'root',
   database: 'office',
-  password: '1234',
+  password: '123456',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
@@ -19,7 +19,7 @@ const pool = mysql.createPool
 const connectionConfig = {
   host: 'localhost',
   user: 'root',
-  password: '1234',
+  password: '123456',
   database: 'office',
 };
 
