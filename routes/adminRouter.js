@@ -280,12 +280,34 @@ router.get('/getMenuDetails', authenticationMiddleware, async (req, res) => {
             id: row[0].menuId,
             menuNm: row[0].menuNm,
             orderNo: row[0].orderNo,
+            viewYn: row[0].viewYn,
             langList: row.map((region) => ({
                 regionCd: region.regionCd,
                 regionNm: region.regionNm,
                 languageNm: region.mlNm,
             })),
         };
+    } catch (error) {
+        console.log(error.message);
+    } finally {
+        res.send({
+            data: res_get_details.data,
+            code: '0000',
+            detailMessage: 'success.',
+        });
+    }
+});
+
+// 메뉴 상세 수정
+router.put('/getMenuDetails/:menuId', authenticationMiddleware, async (req, res) => {
+    let res_get_details = {
+        status_code: 500,
+        data: {},
+    };
+
+    try {
+        await adminDBC.putMenuDetails(req.params.menuId, req.body);
+        res_get_details.status_code = 200;
     } catch (error) {
         console.log(error.message);
     } finally {

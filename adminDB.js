@@ -147,6 +147,23 @@ const getMenuDetails = async (menuId) => {
     return row;
 };
 
+const putMenuDetails = async (menuId, params) => {
+    try {
+        const { viewYn, orderNo, menuNm, desc } = params;
+        const connection = await mysqlPromise.createConnection(connectionConfig);
+
+        const query = `update menu set viewYn = ?, orderNo = ?, menuNm = ?, \`desc\` = ? where menuId = ?;`;
+
+        const values = [viewYn, orderNo, menuNm, desc, menuId];
+
+        await connection.query(query, values);
+
+        connection.end();
+    } catch (error) {
+        console.error('Error:', error);
+    }
+};
+
 const getSystemCode = async (uxId) => {
     const promisePool = pool.promise();
     const [row] = await promisePool.query(`select * from code where uxId = '${uxId}';`);
@@ -320,6 +337,7 @@ module.exports = {
     getSideMenus,
     getTreeMenus,
     getMenuDetails,
+    putMenuDetails,
     getRegions,
     getSystemCode,
     getContents,
