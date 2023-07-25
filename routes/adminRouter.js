@@ -1,55 +1,105 @@
 const express = require('express');
+const router = express.Router();
 const adminDBC = require('../adminDB');
 const { getSha256Hash, getUnixTimestampAfterOneHour, getCurrentUnixTimestamp } = require('../utils');
-const router = express.Router();
+
+const authenticationMiddleware = async (req, res, next) => {
+    const { authorization, adminid } = req.headers;
+
+    // 세션 ID를 헤더로부터 추출
+    const sessionId = authorization.split(' ')[1];
+    const sessionAdminId = await adminDBC.findSessionIdByAdminId(sessionId);
+
+    // 세션에 사용자 정보가 있는지 확인 (세션 ID 가 존재하고 해당 세션의 사용자가 일치)
+    if (sessionId && adminid == sessionAdminId) {
+        // 다음 미들웨어나 라우트 핸들러로 진행
+        next();
+    } else {
+        // 세션에 사용자 정보가 없으면 인증 실패
+        res.status(401).json({ code: '1111', detailMessage: '존재하지 않는 계정입니다.' });
+    }
+};
 
 //로그인
 router.post('/login', async (req, res) => {
     const { secretPw } = req.body;
-    const sha256HashPw = await getSha256Hash(secretPw);
-
-    let res_get_adminInfo = {
-        code: '0000',
-        data: {},
-        detailMessage: 'login success.',
-    };
 
     try {
+        const sessionId = req.sessionID;
+        const sha256HashPw = await getSha256Hash(secretPw);
         const adminInfo = await adminDBC.postLogin({
             ...req.body,
             secretPw: sha256HashPw,
         });
+
         const regionList = await adminDBC.getRegions();
 
         if (!!adminInfo.length) {
             const { id, ip, langCode } = adminInfo[0];
             const expireTime = getUnixTimestampAfterOneHour(60 * 60);
 
-            res_get_adminInfo.data = {
-                accessToken: await getSha256Hash(`${id}?ip=${ip}?expireTime=${expireTime}`),
-                expireTime,
-                languageCode: langCode,
-                loginId: id,
-                loginIp: ip,
-                loginStatus: 'S1',
-                loginTime: getCurrentUnixTimestamp(),
-                regionList: regionList.map((region) => ({ id: region.regionCd })),
-                timeZoneData: 1688207263,
-            };
+            // 세션 데이터를 메모리 상에 저장
+            req.session.isLoggedIn = true;
+            req.session.adminId = id;
+            req.session.save(() => {
+                // 세션 ID를 쿠키로 설정하여 클라이언트에  전송
+                // res.cookie('connect.sid', req.sessionID, {
+                //     httpOnly: true,
+                //     maxAge: 3600000, // 1시간 동안 유효한 쿠키
+                // });
+
+                const responseData = {
+                    code: '0000',
+                    data: {
+                        accessToken: sessionId,
+                        expireTime,
+                        languageCode: langCode,
+                        loginId: id,
+                        loginIp: ip,
+                        loginStatus: 'S1',
+                        loginTime: getCurrentUnixTimestamp(),
+                        regionList: regionList.map((region) => ({ id: region.regionCd })),
+                    },
+                    detailMessage: 'login success.',
+                };
+
+                return res.status(200).json(responseData);
+            });
         } else {
             //로그인 정보 없을 시
-            res_get_adminInfo.code = '1000';
-            res_get_adminInfo.detailMessage = '존재하지 않는 계정입니다.';
+            const responseData = {
+                code: '1000',
+                detailMessage: '존재하지 않는 계정입니다.',
+            };
+            return res.status(200).json(responseData);
         }
     } catch (error) {
-        console.log(error.message);
-    } finally {
-        res.send(res_get_adminInfo);
+        console.log('error:: ', error);
+
+        // 서버 오류 시 응답
+        const responseData = {
+            code: '5000',
+            detailMessage: '서버 오류 발생.',
+        };
+
+        return res.status(500).json(responseData);
     }
 });
 
+//로그아웃
+router.post('/logout', async (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            return res.status(500).json({ code: '1111', detailMessage: '로그아웃 처리 중 오류가 발생했습니다.' });
+        }
+
+        // 클라이언트에게 로그아웃 상태를 알림
+        return res.json({ code: '0000', detailMessage: '로그아웃 되었습니다.' });
+    });
+});
+
 //언어 목록 조회
-router.get('/getLanguages', async (req, res) => {
+router.get('/getLanguages', authenticationMiddleware, async (req, res) => {
     let res_get_languages = {
         status_code: 500,
         data: {},
@@ -71,7 +121,7 @@ router.get('/getLanguages', async (req, res) => {
 });
 
 //타임존 목록 조회
-router.get('/getTimezones', async (req, res) => {
+router.get('/getTimezones', authenticationMiddleware, async (req, res) => {
     let res_get_timezones = {
         status_code: 500,
         data: {},
@@ -93,7 +143,7 @@ router.get('/getTimezones', async (req, res) => {
 });
 
 // 관리자 정보 조회
-router.get('/getAdmins', async (req, res) => {
+router.get('/getAdmins', authenticationMiddleware, async (req, res) => {
     const adminId = req.headers.adminid;
     let res_get_admins = {
         status_code: 500,
@@ -118,7 +168,7 @@ router.get('/getAdmins', async (req, res) => {
 });
 
 //접속 내역 조회
-router.get('/getHistories', async (req, res) => {
+router.get('/getHistories', authenticationMiddleware, async (req, res) => {
     const adminId = req.headers.adminid;
     let res_get_histories = {
         status_code: 500,
@@ -149,7 +199,7 @@ router.get('/getHistories', async (req, res) => {
 });
 
 // depth 별 메뉴 조회
-router.get('/getTopMenus', async (req, res) => {
+router.get('/getTopMenus', authenticationMiddleware, async (req, res) => {
     let res_get_menus = {
         status_code: 500,
         menus: {},
@@ -171,7 +221,7 @@ router.get('/getTopMenus', async (req, res) => {
 });
 
 // 1 depth 별 2 depth 메뉴 조회
-router.post('/getSideMenus', async (req, res) => {
+router.post('/getSideMenus', authenticationMiddleware, async (req, res) => {
     const parentId = req.body.parentId;
     let res_get_menus = {
         status_code: 500,
@@ -194,7 +244,7 @@ router.post('/getSideMenus', async (req, res) => {
 });
 
 // 트리 메뉴 조회
-router.get('/getTreeMenus', async (req, res) => {
+router.get('/getTreeMenus', authenticationMiddleware, async (req, res) => {
     let res_get_menus = {
         status_code: 500,
         menus: {},
@@ -216,7 +266,7 @@ router.get('/getTreeMenus', async (req, res) => {
 });
 
 // 메뉴 상세 조회
-router.get('/getMenuDetails', async (req, res) => {
+router.get('/getMenuDetails', authenticationMiddleware, async (req, res) => {
     let res_get_details = {
         status_code: 500,
         data: {},
@@ -248,7 +298,7 @@ router.get('/getMenuDetails', async (req, res) => {
 });
 
 // 리전 목록 조회
-router.get('/getRegions', async (req, res) => {
+router.get('/getRegions', authenticationMiddleware, async (req, res) => {
     let res_get_regions = {
         status_code: 500,
         data: {},
@@ -270,7 +320,7 @@ router.get('/getRegions', async (req, res) => {
 });
 
 // 시스템 코드 목록 조회
-router.get('/getSystemCode', async (req, res) => {
+router.get('/getSystemCode', authenticationMiddleware, async (req, res) => {
     let res_get_code = {
         status_code: 500,
         data: {},
@@ -326,7 +376,7 @@ router.get('/getSystemCode', async (req, res) => {
 });
 
 // 컨텐츠 목록 조회
-router.get('/getContents', async (req, res) => {
+router.get('/getContents', authenticationMiddleware, async (req, res) => {
     let res_get_contents = {
         status_code: 500,
         data: {},
@@ -351,7 +401,7 @@ router.get('/getContents', async (req, res) => {
 });
 
 //FAQ 목록 조회
-router.post('/getFAQs', async (req, res) => {
+router.post('/getFAQs', authenticationMiddleware, async (req, res) => {
     let res_get_faqs = {
         status_code: 500,
         data: {},
@@ -376,7 +426,7 @@ router.post('/getFAQs', async (req, res) => {
 });
 
 //FAQ 상세 조회
-router.get('/faqDetails', async (req, res) => {
+router.get('/faqDetails', authenticationMiddleware, async (req, res) => {
     let res_get_faqDetails = {
         status_code: 500,
         data: {},
@@ -398,7 +448,7 @@ router.get('/faqDetails', async (req, res) => {
 });
 
 //FAQ 상세 수정
-router.put('/faqDetails/:noId', async (req, res) => {
+router.put('/faqDetails/:noId', authenticationMiddleware, async (req, res) => {
     let res_get_faqDetails = {
         status_code: 500,
         data: {},
@@ -423,7 +473,7 @@ router.put('/faqDetails/:noId', async (req, res) => {
 });
 
 //FAQ 등록
-router.post('/faqDetails', async (req, res) => {
+router.post('/faqDetails', authenticationMiddleware, async (req, res) => {
     let res_get_faqDetails = {
         status_code: 500,
         data: {},
@@ -447,7 +497,7 @@ router.post('/faqDetails', async (req, res) => {
 });
 
 //FAQ 개별 삭제
-router.delete('/faqDetails/:noId', async (req, res) => {
+router.delete('/faqDetails/:noId', authenticationMiddleware, async (req, res) => {
     let res_get_faqDetails = {
         status_code: 500,
         data: {},
@@ -468,7 +518,7 @@ router.delete('/faqDetails/:noId', async (req, res) => {
 });
 
 //POC별 FAQ 목록 조회
-router.get('/getTopFAQs', async (req, res) => {
+router.get('/getTopFAQs', authenticationMiddleware, async (req, res) => {
     let res_get_pocFaqs = {
         status_code: 500,
         data: {},
@@ -493,7 +543,7 @@ router.get('/getTopFAQs', async (req, res) => {
 });
 
 //POC 별 FAQ(자주찾는질문) 추가
-router.put('/topFAQsDetails/:poc', async (req, res) => {
+router.put('/topFAQsDetails/:poc', authenticationMiddleware, async (req, res) => {
     let res_get_faqDetails = {
         status_code: 500,
         data: {},
@@ -514,7 +564,7 @@ router.put('/topFAQsDetails/:poc', async (req, res) => {
 });
 
 //POC 별 FAQ 순서 변경
-router.post('/topFAQsDetails/order', async (req, res) => {
+router.post('/topFAQsDetails/order', authenticationMiddleware, async (req, res) => {
     let res_get_faqDetails = {
         status_code: 500,
         data: {},
@@ -535,7 +585,7 @@ router.post('/topFAQsDetails/order', async (req, res) => {
 });
 
 //POC 별 FAQ 삭제
-router.put('/topFAQsDetails', async (req, res) => {
+router.put('/topFAQsDetails', authenticationMiddleware, async (req, res) => {
     let res_get_faqDetails = {
         status_code: 500,
         data: {},
