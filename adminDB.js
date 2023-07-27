@@ -140,23 +140,59 @@ const getMenuDetails = async (menuId) => {
     const promisePool = pool.promise();
     const [row] = await promisePool.query(
         `SELECT * FROM menu a 
-       join menulanguage b on a.id = b.mId 
-       join region c on c.noId = b.rdx
-       where a.id = '${menuId}';`
+       join menulanguage b on a.menuId = b.menuId 
+       join region c on c.regionCd = b.regionCd
+       where a.menuId = '${menuId}';`
     );
     return row;
 };
 
 const putMenuDetails = async (menuId, params) => {
     try {
-        const { viewYn, orderNo, menuNm, desc } = params;
+        const { viewYn, orderNo, menuNm, desc, langList } = params;
         const connection = await mysqlPromise.createConnection(connectionConfig);
 
+        // 메뉴 상세 수정
         const query = `update menu set viewYn = ?, orderNo = ?, menuNm = ?, \`desc\` = ? where menuId = ?;`;
-
         const values = [viewYn, orderNo, menuNm, desc, menuId];
 
         await connection.query(query, values);
+
+        if (langList.length) {
+            // menuId 매핑된 튜플 삭제
+            await connection.query(`delete from menulanguage where menuId = ?;`, [menuId]);
+            // 리전별 메뉴명 삽입(수정)
+            await langList.map((language) => {
+                const insertMenuNm = `
+                INSERT INTO menulanguage (regionCd, menuNm, menuId) 
+                VALUES (?, ?, ?);
+            `;
+                connection.query(insertMenuNm, [language.regionCd, language.menuNm, menuId]);
+            });
+        }
+
+        connection.end();
+    } catch (error) {
+        console.error('Error:', error);
+    }
+};
+
+const postMenuDetails = async (params) => {
+    try {
+        const { id, parentId, depth, orderNo } = params;
+        const connection = await mysqlPromise.createConnection(connectionConfig);
+
+        const insertMenu = `insert into menu (id, menuId, viewYn, depth, menuNm, parentId, url, uxId, orderNo, \`desc\`)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`;
+
+        const insertMenuLanguage = `insert into menulanguage (regionCd, menuNm, menuId)
+        VALUES (?, ?, ?);`;
+
+        const menuValues = [id, `menu${id}`, 1, depth, '새 메뉴', parentId, '', `MENU${id}`, orderNo, ''];
+        const languageValues = ['KR', '새 메뉴', `menu${id}`];
+
+        await connection.query(insertMenu, menuValues);
+        await connection.query(insertMenuLanguage, languageValues);
 
         connection.end();
     } catch (error) {
@@ -338,6 +374,7 @@ module.exports = {
     getTreeMenus,
     getMenuDetails,
     putMenuDetails,
+    postMenuDetails,
     getRegions,
     getSystemCode,
     getContents,

@@ -281,10 +281,11 @@ router.get('/getMenuDetails', authenticationMiddleware, async (req, res) => {
             menuNm: row[0].menuNm,
             orderNo: row[0].orderNo,
             viewYn: row[0].viewYn,
+            desc: row[0].desc,
             langList: row.map((region) => ({
                 regionCd: region.regionCd,
                 regionNm: region.regionNm,
-                languageNm: region.mlNm,
+                languageNm: region.menuNm,
             })),
         };
     } catch (error) {
@@ -307,6 +308,27 @@ router.put('/getMenuDetails/:menuId', authenticationMiddleware, async (req, res)
 
     try {
         await adminDBC.putMenuDetails(req.params.menuId, req.body);
+        res_get_details.status_code = 200;
+    } catch (error) {
+        console.log(error.message);
+    } finally {
+        res.send({
+            data: res_get_details.data,
+            code: '0000',
+            detailMessage: 'success.',
+        });
+    }
+});
+
+// 메뉴 추가
+router.post('/getMenuDetails', authenticationMiddleware, async (req, res) => {
+    let res_get_details = {
+        status_code: 500,
+        data: {},
+    };
+
+    try {
+        await adminDBC.postMenuDetails(req.body);
         res_get_details.status_code = 200;
     } catch (error) {
         console.log(error.message);
