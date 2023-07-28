@@ -54,6 +54,7 @@ router.post('/login', async (req, res) => {
                         accessToken: sessionId,
                         expireTime,
                         languageCode: langCode,
+                        regionCode: 'KR',
                         loginId: id,
                         loginIp: ip,
                         loginStatus: 'S1',
