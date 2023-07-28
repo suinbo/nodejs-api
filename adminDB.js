@@ -188,16 +188,27 @@ const postMenuDetails = async (params) => {
         const insertMenuLanguage = `insert into menulanguage (regionCd, menuNm, menuId)
         VALUES (?, ?, ?);`;
 
-        const menuValues = [id, `menu${id}`, 1, depth, '새 메뉴', parentId, '', `MENU${id}`, orderNo, ''];
-        const languageValues = ['KR', '새 메뉴', `menu${id}`];
+        const menuId = `menu${id}`;
+        const menuValues = [id, menuId, 1, depth, '새 메뉴', parentId, '', `MENU${id}`, orderNo, ''];
+        const languageValues = ['KR', '새 메뉴', menuId];
 
         await connection.query(insertMenu, menuValues);
         await connection.query(insertMenuLanguage, languageValues);
 
         connection.end();
+
+        return { menuId, id, depth };
     } catch (error) {
         console.error('Error:', error);
     }
+};
+
+const deleteMenuDetails = async (menuId) => {
+    const connection = await mysqlPromise.createConnection(connectionConfig);
+
+    await connection.query(`delete from menu where menuId = ?;`, menuId);
+
+    connection.end();
 };
 
 const getSystemCode = async (uxId) => {
@@ -375,6 +386,7 @@ module.exports = {
     getMenuDetails,
     putMenuDetails,
     postMenuDetails,
+    deleteMenuDetails,
     getRegions,
     getSystemCode,
     getContents,

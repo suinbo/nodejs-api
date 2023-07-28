@@ -266,7 +266,7 @@ router.get('/getTreeMenus', authenticationMiddleware, async (req, res) => {
 });
 
 // 메뉴 상세 조회
-router.get('/getMenuDetails', authenticationMiddleware, async (req, res) => {
+router.get('/menuDetails', authenticationMiddleware, async (req, res) => {
     let res_get_details = {
         status_code: 500,
         data: {},
@@ -300,7 +300,7 @@ router.get('/getMenuDetails', authenticationMiddleware, async (req, res) => {
 });
 
 // 메뉴 상세 수정
-router.put('/getMenuDetails/:menuId', authenticationMiddleware, async (req, res) => {
+router.put('/menuDetails/:menuId', authenticationMiddleware, async (req, res) => {
     let res_get_details = {
         status_code: 500,
         data: {},
@@ -321,14 +321,36 @@ router.put('/getMenuDetails/:menuId', authenticationMiddleware, async (req, res)
 });
 
 // 메뉴 추가
-router.post('/getMenuDetails', authenticationMiddleware, async (req, res) => {
+router.post('/menuDetails', authenticationMiddleware, async (req, res) => {
     let res_get_details = {
         status_code: 500,
         data: {},
     };
 
     try {
-        await adminDBC.postMenuDetails(req.body);
+        const result = await adminDBC.postMenuDetails(req.body);
+        res_get_details.status_code = 200;
+        res_get_details.data = result;
+    } catch (error) {
+        console.log(error.message);
+    } finally {
+        res.send({
+            data: res_get_details.data,
+            code: '0000',
+            detailMessage: 'success.',
+        });
+    }
+});
+
+// 메뉴 삭제
+router.delete('/menuDetails/:menuId', authenticationMiddleware, async (req, res) => {
+    let res_get_details = {
+        status_code: 500,
+        data: {},
+    };
+
+    try {
+        await adminDBC.deleteMenuDetails(req.params.menuId);
         res_get_details.status_code = 200;
     } catch (error) {
         console.log(error.message);
