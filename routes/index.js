@@ -42,6 +42,6 @@ app.use(cors());
 
 // '/admins' 경로로 들어오는 요청에 대해서만 router 동작
 const adminRouter = require('./adminRouter');
-app.use(`/admins`, adminRouter);
+app.use('/api', adminRouter);
 
 module.exports = app;
