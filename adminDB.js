@@ -58,6 +58,20 @@ const postLogin = async (params) => {
 
 const postLogout = async (params) => {};
 
+const putAccessHistory = async (params) => {
+    const { historyDesc, historyDate, ip, id } = params;
+
+    const promisePool = pool.promise(); // promise 기반 MySQL 연결 풀 생성
+
+    const query = `insert into accesshistory (historyDesc, historyDate, ip, adminId) 
+        values (?, ?, ?, ?)`;
+
+    const values = [historyDesc, historyDate, ip, id];
+
+    const [row] = await promisePool.query(query, values);
+    return row;
+};
+
 const getRegions = async () => {
     const promisePool = pool.promise();
     const [row] = await promisePool.query(`select * from region;`);
@@ -82,9 +96,29 @@ const getAdmins = async (adminId) => {
     return row;
 };
 
+const putAdmins = async (adminId, params) => {
+    const { tel, email, department, langCode, timeCode } = params;
+
+    try {
+        const connection = await mysqlPromise.createConnection(connectionConfig);
+
+        const query = `UPDATE admin
+            SET tel = ?, email = ?, department = ?, langCode = ?, timeCode = ?, updateDt = ?
+            WHERE id = ?`;
+
+        const values = [decodeURIComponent(tel), decodeURIComponent(email), department, langCode, timeCode, new Date(), adminId];
+
+        await connection.query(query, values);
+
+        connection.end();
+    } catch (error) {
+        console.error('Error:', error);
+    }
+};
+
 const getAccessHistory = async (adminId) => {
     const promisePool = pool.promise();
-    const [row] = await promisePool.query(`select * from accesshistory where adminId = '${adminId}';`);
+    const [row] = await promisePool.query(`select * from accesshistory where adminId = '${adminId}' order by historyDate desc;`);
     return row;
 };
 
@@ -376,9 +410,11 @@ module.exports = {
     findSessionIdByAdminId,
     postLogin,
     postLogout,
+    putAccessHistory,
     getLanguages,
     getTimezones,
     getAdmins,
+    putAdmins,
     getAccessHistory,
     getTopMenus,
     getSideMenus,

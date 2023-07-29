@@ -38,6 +38,13 @@ router.post('/login', async (req, res) => {
             const { id, ip, langCode } = adminInfo[0];
             const expireTime = getUnixTimestampAfterOneHour(60 * 60);
 
+            await adminDBC.putAccessHistory({
+                historyDesc: '로그인',
+                historyDate: Math.floor(Date.now() / 1000),
+                ip,
+                id,
+            });
+
             // 세션 데이터를 메모리 상에 저장
             req.session.isLoggedIn = true;
             req.session.adminId = id;
@@ -89,9 +96,17 @@ router.post('/login', async (req, res) => {
 
 //로그아웃
 router.post('/logout', async (req, res) => {
+    const { loginId, loginIp } = req.body;
     req.session.destroy((err) => {
         if (err) {
             return res.status(500).json({ code: '1111', detailMessage: '로그아웃 처리 중 오류가 발생했습니다.' });
+        } else {
+            adminDBC.putAccessHistory({
+                historyDesc: '로그아웃',
+                historyDate: Math.floor(Date.now() / 1000),
+                ip: loginIp,
+                id: loginId,
+            });
         }
 
         // 클라이언트에게 로그아웃 상태를 알림
@@ -144,7 +159,7 @@ router.get('/getTimezones', authenticationMiddleware, async (req, res) => {
 });
 
 // 관리자 정보 조회
-router.get('/getAdmins', authenticationMiddleware, async (req, res) => {
+router.get('/admins', authenticationMiddleware, async (req, res) => {
     const adminId = req.headers.adminid;
     let res_get_admins = {
         status_code: 500,
@@ -157,6 +172,28 @@ router.get('/getAdmins', authenticationMiddleware, async (req, res) => {
         {
             res_get_admins.admins = row[0];
         }
+    } catch (error) {
+        console.log(error.message);
+    } finally {
+        res.send({
+            data: res_get_admins.admins,
+            code: '0000',
+            detailMessage: 'success.',
+        });
+    }
+});
+
+// 관리자 정보 수정
+router.put('/admins', authenticationMiddleware, async (req, res) => {
+    const adminId = req.headers.adminid;
+    let res_get_admins = {
+        status_code: 500,
+        admins: {},
+    };
+
+    try {
+        await adminDBC.putAdmins(adminId, req.body);
+        res_get_admins.status_code = 200;
     } catch (error) {
         console.log(error.message);
     } finally {
