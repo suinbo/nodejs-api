@@ -1,7 +1,6 @@
 const session = require('express-session');
 const MySQLStore = require('express-mysql-session')(session);
 const express = require('express');
-const mysql = require('mysql2');
 
 const connection = {
     host: 'localhost',
@@ -9,9 +8,6 @@ const connection = {
     password: '123456',
     database: 'office',
 };
-
-//const cookieParser = require('cookie-parser');
-//app.use(cookieParser());
 
 const app = express();
 
@@ -29,12 +25,7 @@ app.use(
     })
 );
 
-// body-parser 미들웨어 사용: PUT 요청 본문을 파싱 (req.body)
-// const bodyParser = require('body-parser');
 app.use(express.json());
-
-// app.use(bodyParser.urlencoded({ extended: true }));
-// app.use(bodyParser.json());
 
 // CORS 허용 설정 (서버가 다른 도메인 또는 포트에서 온 요청을 허용)
 const cors = require('cors');
