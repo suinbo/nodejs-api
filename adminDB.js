@@ -116,10 +116,41 @@ const putAdmins = async (adminId, params) => {
     }
 };
 
-const getAccessHistory = async (adminId) => {
+const getPassword = async (adminId) => {
+    try {
+        const connection = await mysqlPromise.createConnection(connectionConfig);
+
+        const [result] = await connection.query(`SELECT password FROM admin WHERE id = ?;`, [adminId]);
+
+        return result[0].password;
+    } catch (error) {
+        console.error('Error:', error);
+    }
+};
+
+const putPassword = async (adminId, newSecretPw) => {
+    try {
+        const connection = await mysqlPromise.createConnection(connectionConfig);
+
+        const query = `UPDATE admin SET password = ? WHERE id = ?;`;
+
+        const values = [newSecretPw, adminId];
+
+        await connection.query(query, values);
+
+        connection.end();
+    } catch (error) {
+        console.error('Error:', error);
+    }
+};
+
+const getAccessHistory = async (adminId, pageNo) => {
     const promisePool = pool.promise();
-    const [row] = await promisePool.query(`select * from accesshistory where adminId = '${adminId}' order by historyDate desc;`);
-    return row;
+    const [totalCount] = await promisePool.query(`select count(*) as totalCount from accesshistory;`);
+    const [row] = await promisePool.query(`
+    select * from accesshistory where adminId = '${adminId}' order by noId desc 
+    limit 10 offset ${(pageNo - 1) * 10}`);
+    return { totalCount, row };
 };
 
 const getTopMenus = async () => {
@@ -415,6 +446,8 @@ module.exports = {
     getTimezones,
     getAdmins,
     putAdmins,
+    getPassword,
+    putPassword,
     getAccessHistory,
     getTopMenus,
     getSideMenus,

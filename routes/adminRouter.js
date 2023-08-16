@@ -205,19 +205,54 @@ router.put('/admins', authenticationMiddleware, async (req, res) => {
     }
 });
 
+//비밀번호 변경
+router.put('/setPassword', authenticationMiddleware, async (req, res) => {
+    const adminId = req.headers.adminid;
+    const { secretPw, newSecretPw } = req.body;
+    let res_get_admins = {
+        status_code: 500,
+        admins: {},
+        message: '',
+    };
+
+    try {
+        const password = await adminDBC.getPassword(adminId);
+        const hashPassword = await getSha256Hash(secretPw);
+        const hashNesPassword = await getSha256Hash(newSecretPw);
+
+        if (password !== hashPassword) {
+            res_get_admins.message = '비밀번호가 일치하지 않습니다.';
+            res_get_admins.status_code = '1000';
+        } else {
+            adminDBC.putPassword(adminId, hashNesPassword);
+            res_get_admins.status_code = '0000';
+        }
+    } catch (error) {
+        console.log(error.message);
+    } finally {
+        res.send({
+            data: res_get_admins.admins,
+            code: res_get_admins.status_code,
+            detailMessage: res_get_admins.message,
+        });
+    }
+});
+
 //접속 내역 조회
 router.get('/getHistories', authenticationMiddleware, async (req, res) => {
     const adminId = req.headers.adminid;
+    const pageNo = req.query.page;
+
     let res_get_histories = {
         status_code: 500,
         data: {},
     };
 
     try {
-        const row = await adminDBC.getAccessHistory(adminId);
+        const { totalCount, row } = await adminDBC.getAccessHistory(adminId, pageNo);
         res_get_histories.status_code = 200;
         res_get_histories.data = {
-            totalCount: row.length,
+            ...totalCount[0],
             list: row.map((item) => ({
                 no: item.noId,
                 historyDesc: item.historyDesc,
