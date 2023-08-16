@@ -49,12 +49,6 @@ router.post('/login', async (req, res) => {
             req.session.isLoggedIn = true;
             req.session.adminId = id;
             req.session.save(() => {
-                // 세션 ID를 쿠키로 설정하여 클라이언트에  전송
-                // res.cookie('connect.sid', req.sessionID, {
-                //     httpOnly: true,
-                //     maxAge: 3600000, // 1시간 동안 유효한 쿠키
-                // });
-
                 const responseData = {
                     code: '0000',
                     data: {
