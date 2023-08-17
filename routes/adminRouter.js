@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const adminDBC = require('../adminDB');
 const { getSha256Hash, getUnixTimestampAfterOneHour, getCurrentUnixTimestamp } = require('../utils');
+const { RESPONSE } = require('../constant');
 
 const authenticationMiddleware = async (req, res, next) => {
     const { authorization, adminid } = req.headers;
@@ -16,7 +17,7 @@ const authenticationMiddleware = async (req, res, next) => {
         next();
     } else {
         // 세션에 사용자 정보가 없으면 인증 실패
-        res.status(401).json({ code: '1111', detailMessage: '존재하지 않는 계정입니다.' });
+        res.status(401).json(RESPONSE.UNAUTHENTICATED);
     }
 };
 
@@ -50,7 +51,7 @@ router.post('/login', async (req, res) => {
             req.session.adminId = id;
             req.session.save(() => {
                 const responseData = {
-                    code: '0000',
+                    ...RESPONSE.LOGIN_SUCCESS,
                     data: {
                         accessToken: sessionId,
                         expireTime,
@@ -62,29 +63,17 @@ router.post('/login', async (req, res) => {
                         loginTime: getCurrentUnixTimestamp(),
                         regionList: regionList.map((region) => ({ id: region.regionCd })),
                     },
-                    detailMessage: 'login success.',
                 };
 
                 return res.status(200).json(responseData);
             });
         } else {
             //로그인 정보 없을 시
-            const responseData = {
-                code: '1000',
-                detailMessage: '존재하지 않는 계정입니다.',
-            };
-            return res.status(200).json(responseData);
+            return res.status(401).json(RESPONSE.UNAUTHENTICATED);
         }
     } catch (error) {
         console.log('error:: ', error);
-
-        // 서버 오류 시 응답
-        const responseData = {
-            code: '5000',
-            detailMessage: '서버 오류 발생.',
-        };
-
-        return res.status(500).json(responseData);
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
@@ -93,7 +82,7 @@ router.post('/logout', async (req, res) => {
     const { loginId, loginIp } = req.body;
     req.session.destroy((err) => {
         if (err) {
-            return res.status(500).json({ code: '1111', detailMessage: '로그아웃 처리 중 오류가 발생했습니다.' });
+            return res.status(500).json(RESPONSE.LOGOUT_FAIL);
         } else {
             adminDBC.putAccessHistory({
                 historyDesc: '로그아웃',
@@ -103,99 +92,70 @@ router.post('/logout', async (req, res) => {
             });
         }
 
-        // 클라이언트에게 로그아웃 상태를 알림
-        return res.json({ code: '0000', detailMessage: '로그아웃 되었습니다.' });
+        return res.status(200).json(RESPONSE.LOGOUT_SUCCESS);
     });
 });
 
 //언어 목록 조회
 router.get('/getLanguages', authenticationMiddleware, async (req, res) => {
-    let res_get_languages = {
-        status_code: 500,
-        data: {},
-    };
-
     try {
         const row = await adminDBC.getLanguages();
-        res_get_languages.status_code = 200;
-        res_get_languages.data = row;
+        const responseData = {
+            ...RESPONSE.SUCCESS,
+            data: row,
+        };
+
+        return res.status(200).json(responseData);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_languages.data,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 //타임존 목록 조회
 router.get('/getTimezones', authenticationMiddleware, async (req, res) => {
-    let res_get_timezones = {
-        status_code: 500,
-        data: {},
-    };
-
     try {
         const row = await adminDBC.getTimezones();
-        res_get_timezones.status_code = 200;
-        res_get_timezones.data = row;
+        const responseData = {
+            ...RESPONSE.SUCCESS,
+            data: row,
+        };
+
+        return res.status(200).json(responseData);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_timezones.data,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 // 관리자 정보 조회
 router.get('/admins', authenticationMiddleware, async (req, res) => {
     const adminId = req.headers.adminid;
-    let res_get_admins = {
-        status_code: 500,
-        admins: {},
-    };
 
     try {
         const row = await adminDBC.getAdmins(adminId);
-        res_get_admins.status_code = 200;
-        {
-            res_get_admins.admins = row[0];
-        }
+        const responseData = {
+            ...RESPONSE.SUCCESS,
+            data: row[0],
+        };
+
+        return res.status(200).json(responseData);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_admins.admins,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 // 관리자 정보 수정
 router.put('/admins', authenticationMiddleware, async (req, res) => {
     const adminId = req.headers.adminid;
-    let res_get_admins = {
-        status_code: 500,
-        admins: {},
-    };
 
     try {
         await adminDBC.putAdmins(adminId, req.body);
-        res_get_admins.status_code = 200;
+        return res.status(200).json(RESPONSE.SUCCESS);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_admins.admins,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
@@ -203,11 +163,6 @@ router.put('/admins', authenticationMiddleware, async (req, res) => {
 router.put('/setPassword', authenticationMiddleware, async (req, res) => {
     const adminId = req.headers.adminid;
     const { secretPw, newSecretPw } = req.body;
-    let res_get_admins = {
-        status_code: 500,
-        admins: {},
-        message: '',
-    };
 
     try {
         const password = await adminDBC.getPassword(adminId);
@@ -215,20 +170,14 @@ router.put('/setPassword', authenticationMiddleware, async (req, res) => {
         const hashNesPassword = await getSha256Hash(newSecretPw);
 
         if (password !== hashPassword) {
-            res_get_admins.message = '비밀번호가 일치하지 않습니다.';
-            res_get_admins.status_code = '1000';
+            return res.status(401).json(RESPONSE.UNCORRECT);
         } else {
             adminDBC.putPassword(adminId, hashNesPassword);
-            res_get_admins.status_code = '0000';
+            return res.status(200).json(RESPONSE.SUCCESS);
         }
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_admins.admins,
-            code: res_get_admins.status_code,
-            detailMessage: res_get_admins.message,
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
@@ -237,228 +186,156 @@ router.get('/getHistories', authenticationMiddleware, async (req, res) => {
     const adminId = req.headers.adminid;
     const pageNo = req.query.page;
 
-    let res_get_histories = {
-        status_code: 500,
-        data: {},
-    };
-
     try {
         const { totalCount, row } = await adminDBC.getAccessHistory(adminId, pageNo);
-        res_get_histories.status_code = 200;
-        res_get_histories.data = {
-            ...totalCount[0],
-            list: row.map((item) => ({
-                no: item.noId,
-                historyDesc: item.historyDesc,
-                historyDate: item.historyDate,
-                ip: item.ip,
-            })),
+        const responseData = {
+            ...RESPONSE.SUCCESS,
+            data: {
+                ...totalCount[0],
+                list: row.map((item) => ({
+                    no: item.noId,
+                    historyDesc: item.historyDesc,
+                    historyDate: item.historyDate,
+                    ip: item.ip,
+                })),
+            },
         };
+
+        return res.status(200).json(responseData);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_histories.data,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 // depth 별 메뉴 조회
 router.get('/getTopMenus', authenticationMiddleware, async (req, res) => {
-    let res_get_menus = {
-        status_code: 500,
-        menus: {},
-    };
-
     try {
         const row = await adminDBC.getTopMenus();
-        res_get_menus.status_code = 200;
-        res_get_menus.menus = row;
+        const responseData = {
+            ...RESPONSE.SUCCESS,
+            data: row,
+        };
+        return res.status(200).json(responseData);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_menus.menus,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 // 1 depth 별 2 depth 메뉴 조회
 router.post('/getSideMenus', authenticationMiddleware, async (req, res) => {
     const parentId = req.body.parentId;
-    let res_get_menus = {
-        status_code: 500,
-        menus: {},
-    };
 
     try {
         const row = await adminDBC.getSideMenus(parentId);
-        res_get_menus.status_code = 200;
-        res_get_menus.menus = row;
+        const responseData = {
+            ...RESPONSE.SUCCESS,
+            data: row,
+        };
+        return res.status(200).json(responseData);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_menus.menus,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 // 트리 메뉴 조회
 router.get('/getTreeMenus', authenticationMiddleware, async (req, res) => {
-    let res_get_menus = {
-        status_code: 500,
-        menus: {},
-    };
-
     try {
         const row = await adminDBC.getTreeMenus();
-        res_get_menus.status_code = 200;
-        res_get_menus.menus = row;
+        const responseData = {
+            ...RESPONSE.SUCCESS,
+            data: row,
+        };
+        return res.status(200).json(responseData);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_menus.menus,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 // 메뉴 상세 조회
 router.get('/menuDetails', authenticationMiddleware, async (req, res) => {
-    let res_get_details = {
-        status_code: 500,
-        data: {},
-    };
-
     try {
         // 메뉴 1개 당 region 별 언어 매핑
         const row = await adminDBC.getMenuDetails(req.query.menuId);
-        res_get_details.status_code = 200;
-        res_get_details.data = {
-            id: row[0].menuId,
-            menuNm: row[0].menuNm,
-            orderNo: row[0].orderNo,
-            viewYn: row[0].viewYn,
-            desc: row[0].desc,
-            langList: row.map((region) => ({
-                regionCd: region.regionCd,
-                regionNm: region.regionNm,
-                languageNm: region.menuNm,
-            })),
+        const responseData = {
+            ...RESPONSE.SUCCESS,
+            data: {
+                id: row[0].menuId,
+                menuNm: row[0].menuNm,
+                orderNo: row[0].orderNo,
+                viewYn: row[0].viewYn,
+                desc: row[0].desc,
+                langList: row.map((region) => ({
+                    regionCd: region.regionCd,
+                    regionNm: region.regionNm,
+                    languageNm: region.menuNm,
+                })),
+            },
         };
+        return res.status(200).json(responseData);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_details.data,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 // 메뉴 상세 수정
 router.put('/menuDetails/:menuId', authenticationMiddleware, async (req, res) => {
-    let res_get_details = {
-        status_code: 500,
-        data: {},
-    };
-
     try {
         await adminDBC.putMenuDetails(req.params.menuId, req.body);
-        res_get_details.status_code = 200;
+        return res.status(200).json(RESPONSE.SUCCESS);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_details.data,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 // 메뉴 추가
 router.post('/menuDetails', authenticationMiddleware, async (req, res) => {
-    let res_get_details = {
-        status_code: 500,
-        data: {},
-    };
-
     try {
         const result = await adminDBC.postMenuDetails(req.body);
-        res_get_details.status_code = 200;
-        res_get_details.data = result;
+        const responseData = {
+            ...RESPONSE.SUCCESS,
+            data: result,
+        };
+        return res.status(200).json(responseData);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_details.data,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 // 메뉴 삭제
 router.delete('/menuDetails/:menuId', authenticationMiddleware, async (req, res) => {
-    let res_get_details = {
-        status_code: 500,
-        data: {},
-    };
-
     try {
         await adminDBC.deleteMenuDetails(req.params.menuId);
-        res_get_details.status_code = 200;
+        return res.status(200).json(RESPONSE.SUCCESS);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_details.data,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 // 리전 목록 조회
 router.get('/getRegions', authenticationMiddleware, async (req, res) => {
-    let res_get_regions = {
-        status_code: 500,
-        data: {},
-    };
-
     try {
         const row = await adminDBC.getRegions();
-        res_get_regions.status_code = 200;
-        res_get_regions.data = row;
+        const responseData = {
+            ...RESPONSE.SUCCESS,
+            data: row,
+        };
+        return res.status(200).json(responseData);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_regions.data,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 // 시스템 코드 목록 조회
 router.get('/getSystemCode', authenticationMiddleware, async (req, res) => {
-    let res_get_code = {
-        status_code: 500,
-        data: {},
-    };
-
     try {
         const row = await adminDBC.getSystemCode(req.query.uxId);
 
@@ -467,13 +344,12 @@ router.get('/getSystemCode', authenticationMiddleware, async (req, res) => {
             const codeMap = {};
             const rootCode = [];
 
-            // Create a menuMap for efficient lookup
             for (const code of codeData) {
                 code.leafs = [];
                 codeMap[code.value] = code;
             }
 
-            // Build the menu tree
+            // 메뉴 트리 생성
             for (const code of codeData) {
                 const data = {
                     id: code.id,
@@ -495,246 +371,161 @@ router.get('/getSystemCode', authenticationMiddleware, async (req, res) => {
             return rootCode;
         };
 
-        res_get_code.status_code = 200;
-        res_get_code.data = buildMenuTree(row);
+        const responseData = {
+            ...RESPONSE.SUCCESS,
+            data: buildMenuTree(row),
+        };
+
+        return res.status(200).json(responseData);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_code.data,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 // 컨텐츠 목록 조회
 router.get('/getContents', authenticationMiddleware, async (req, res) => {
-    let res_get_contents = {
-        status_code: 500,
-        data: {},
-    };
-
     try {
         const { totalCount, row } = await adminDBC.getContents(req.query);
-        res_get_contents.status_code = 200;
-        res_get_contents.data = {
-            ...totalCount[0],
-            list: row,
+        const responseData = {
+            ...RESPONSE.SUCCESS,
+            data: {
+                ...totalCount[0],
+                list: row,
+            },
         };
+
+        return res.status(200).json(responseData);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_contents.data,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 //FAQ 목록 조회
 router.post('/getFAQs', authenticationMiddleware, async (req, res) => {
-    let res_get_faqs = {
-        status_code: 500,
-        data: {},
-    };
-
     try {
         const { totalCount, row } = await adminDBC.getFAQs(req.body);
-        res_get_faqs.status_code = 200;
-        res_get_faqs.data = {
-            ...totalCount[0],
-            list: row,
+        const responseData = {
+            ...RESPONSE.SUCCESS,
+            data: {
+                ...totalCount[0],
+                list: row,
+            },
         };
+
+        return res.status(200).json(responseData);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_faqs.data,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 //FAQ 상세 조회
 router.get('/faqDetails', authenticationMiddleware, async (req, res) => {
-    let res_get_faqDetails = {
-        status_code: 500,
-        data: {},
-    };
-
     try {
         const row = await adminDBC.getFAQDetails(req.query.noId);
-        res_get_faqDetails.status_code = 200;
-        res_get_faqDetails.data = { ...row, poc: row.poc.split(',') };
+        const responseData = {
+            ...RESPONSE.SUCCESS,
+            data: { ...row, poc: row.poc.split(',') },
+        };
+
+        return res.status(200).json(responseData);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_faqDetails.data,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 //FAQ 상세 수정
 router.put('/faqDetails/:noId', authenticationMiddleware, async (req, res) => {
-    let res_get_faqDetails = {
-        status_code: 500,
-        data: {},
-    };
-
     try {
         await adminDBC.putFAQDetails({
             ...req.body,
             noId: req.params.noId,
             updateId: req.headers.adminid,
         });
-        res_get_faqDetails.status_code = 200;
+        return res.status(200).json(RESPONSE.SUCCESS);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_faqDetails.data,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 //FAQ 등록
 router.post('/faqDetails', authenticationMiddleware, async (req, res) => {
-    let res_get_faqDetails = {
-        status_code: 500,
-        data: {},
-    };
-
     try {
         await adminDBC.postFAQDetails({
             ...req.body,
             updateId: req.headers.adminid,
         });
-        res_get_faqDetails.status_code = 200;
+        return res.status(200).json(RESPONSE.SUCCESS);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_faqDetails.data,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 //FAQ 개별 삭제
 router.delete('/faqDetails/:noId', authenticationMiddleware, async (req, res) => {
-    let res_get_faqDetails = {
-        status_code: 500,
-        data: {},
-    };
-
     try {
         await adminDBC.deleteFAQs(req.params.noId);
-        res_get_faqDetails.status_code = 200;
+        return res.status(200).json(RESPONSE.SUCCESS);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_faqDetails.data,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 //POC별 FAQ 목록 조회
 router.get('/getTopFAQs', authenticationMiddleware, async (req, res) => {
-    let res_get_pocFaqs = {
-        status_code: 500,
-        data: {},
-    };
-
     try {
         const { totalCount, row } = await adminDBC.getTopFAQs(req.query.type);
-        res_get_pocFaqs.status_code = 200;
-        res_get_pocFaqs.data = {
-            ...totalCount[0],
-            list: row,
+        const responseData = {
+            ...RESPONSE.SUCCESS,
+            data: {
+                ...totalCount[0],
+                list: row,
+            },
         };
+
+        return res.status(200).json(responseData);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_pocFaqs.data,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 //POC 별 FAQ(자주찾는질문) 추가
 router.put('/topFAQsDetails/:poc', authenticationMiddleware, async (req, res) => {
-    let res_get_faqDetails = {
-        status_code: 500,
-        data: {},
-    };
-
     try {
         await adminDBC.putTopFAQs(req.body);
-        res_get_faqDetails.status_code = 200;
+        return res.status(200).json(RESPONSE.SUCCESS);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_faqDetails.data,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 //POC 별 FAQ 순서 변경
 router.post('/topFAQsDetails/order', authenticationMiddleware, async (req, res) => {
-    let res_get_faqDetails = {
-        status_code: 500,
-        data: {},
-    };
-
     try {
         await adminDBC.putTopFAQsOrder(req.body);
-        res_get_faqDetails.status_code = 200;
+        return res.status(200).json(RESPONSE.SUCCESS);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_faqDetails.data,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
 //POC 별 FAQ 삭제
 router.put('/topFAQsDetails', authenticationMiddleware, async (req, res) => {
-    let res_get_faqDetails = {
-        status_code: 500,
-        data: {},
-    };
-
     try {
         await adminDBC.deleteTopFAQs(req.body);
-        res_get_faqDetails.status_code = 200;
+        return res.status(200).json(RESPONSE.SUCCESS);
     } catch (error) {
         console.log(error.message);
-    } finally {
-        res.send({
-            data: res_get_faqDetails.data,
-            code: '0000',
-            detailMessage: 'success.',
-        });
+        return res.status(500).json(RESPONSE.SERVER_ERROR);
     }
 });
 
