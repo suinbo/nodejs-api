@@ -1,8 +1,5 @@
 const mysql = require('mysql2');
 
-// 프로미스 기반으로 쿼리 결과에 접근
-const mysqlPromise = require('mysql2/promise');
-
 // Create the connection pool
 const pool = mysql.createPool({
     host: 'localhost',
@@ -14,22 +11,14 @@ const pool = mysql.createPool({
     queueLimit: 0,
 });
 
-// MySQL 연결 설정
-const connectionConfig = {
-    host: 'localhost',
-    user: 'root',
-    password: '123456',
-    database: 'office',
-};
-
 // 특정 유저의 세션 ID 조회
 const findSessionIdByAdminId = async (sessionId) => {
     try {
-        // MySQL 데이터베이스와 연결
-        const connection = await mysqlPromise.createConnection(connectionConfig);
+        // promise 기반 MySQL 연결 풀 생성
+        const promisePool = pool.promise();
 
         // express-mysql-session의 get 메서드를 사용하여 해당 유저의 세션 정보를 조회
-        const [rows] = await connection.query(`select data from sessions where session_id = ?`, [sessionId]);
+        const [rows] = await promisePool.query(`select data from sessions where session_id = ?`, [sessionId]);
 
         // 세션의 관리자 ID 반환
         if (!!rows.length) {
@@ -46,7 +35,7 @@ const findSessionIdByAdminId = async (sessionId) => {
 const postLogin = async (params) => {
     const { accessId, secretPw } = params;
 
-    const promisePool = pool.promise(); // promise 기반 MySQL 연결 풀 생성
+    const promisePool = pool.promise();
 
     const query = `select * from admin where id = ? and password = ? ;`;
 
@@ -100,7 +89,7 @@ const putAdmins = async (adminId, params) => {
     const { tel, email, department, langCode, timeCode } = params;
 
     try {
-        const connection = await mysqlPromise.createConnection(connectionConfig);
+        const promisePool = pool.promise();
 
         const query = `UPDATE admin
             SET tel = ?, email = ?, department = ?, langCode = ?, timeCode = ?, updateDt = ?
@@ -108,9 +97,7 @@ const putAdmins = async (adminId, params) => {
 
         const values = [decodeURIComponent(tel), decodeURIComponent(email), department, langCode, timeCode, new Date(), adminId];
 
-        await connection.query(query, values);
-
-        connection.end();
+        await promisePool.query(query, values);
     } catch (error) {
         console.error('Error:', error);
     }
@@ -118,9 +105,9 @@ const putAdmins = async (adminId, params) => {
 
 const getPassword = async (adminId) => {
     try {
-        const connection = await mysqlPromise.createConnection(connectionConfig);
+        const promisePool = pool.promise();
 
-        const [result] = await connection.query(`SELECT password FROM admin WHERE id = ?;`, [adminId]);
+        const [result] = await promisePool.query(`SELECT password FROM admin WHERE id = ?;`, [adminId]);
 
         return result[0].password;
     } catch (error) {
@@ -130,15 +117,13 @@ const getPassword = async (adminId) => {
 
 const putPassword = async (adminId, newSecretPw) => {
     try {
-        const connection = await mysqlPromise.createConnection(connectionConfig);
+        const promisePool = pool.promise();
 
         const query = `UPDATE admin SET password = ? WHERE id = ?;`;
 
         const values = [newSecretPw, adminId];
 
-        await connection.query(query, values);
-
-        connection.end();
+        await promisePool.query(query, values);
     } catch (error) {
         console.error('Error:', error);
     }
@@ -219,28 +204,26 @@ const getMenuDetails = async (menuId) => {
 const putMenuDetails = async (menuId, params) => {
     try {
         const { viewYn, orderNo, menuNm, desc, langList } = params;
-        const connection = await mysqlPromise.createConnection(connectionConfig);
+        const promisePool = pool.promise();
 
         // 메뉴 상세 수정
         const query = `update menu set viewYn = ?, orderNo = ?, menuNm = ?, \`desc\` = ? where menuId = ?;`;
         const values = [viewYn, orderNo, menuNm, desc, menuId];
 
-        await connection.query(query, values);
+        await promisePool.query(query, values);
 
         if (langList.length) {
             // menuId 매핑된 튜플 삭제
-            await connection.query(`delete from menulanguage where menuId = ?;`, [menuId]);
+            await promisePool.query(`delete from menulanguage where menuId = ?;`, [menuId]);
             // 리전별 메뉴명 삽입(수정)
             await langList.map((language) => {
                 const insertMenuNm = `
                 INSERT INTO menulanguage (regionCd, menuNm, menuId) 
                 VALUES (?, ?, ?);
             `;
-                connection.query(insertMenuNm, [language.regionCd, language.menuNm, menuId]);
+                promisePool.query(insertMenuNm, [language.regionCd, language.menuNm, menuId]);
             });
         }
-
-        connection.end();
     } catch (error) {
         console.error('Error:', error);
     }
@@ -249,7 +232,7 @@ const putMenuDetails = async (menuId, params) => {
 const postMenuDetails = async (params) => {
     try {
         const { id, parentId, depth, orderNo } = params;
-        const connection = await mysqlPromise.createConnection(connectionConfig);
+        const promisePool = pool.promise();
 
         const insertMenu = `insert into menu (id, menuId, viewYn, depth, menuNm, parentId, url, uxId, orderNo, \`desc\`)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`;
@@ -261,10 +244,8 @@ const postMenuDetails = async (params) => {
         const menuValues = [id, menuId, 1, depth, '새 메뉴', parentId, '', `MENU${id}`, orderNo, ''];
         const languageValues = ['KR', '새 메뉴', menuId];
 
-        await connection.query(insertMenu, menuValues);
-        await connection.query(insertMenuLanguage, languageValues);
-
-        connection.end();
+        await promisePool.query(insertMenu, menuValues);
+        await promisePool.query(insertMenuLanguage, languageValues);
 
         return { menuId, id, depth };
     } catch (error) {
@@ -273,11 +254,9 @@ const postMenuDetails = async (params) => {
 };
 
 const deleteMenuDetails = async (menuId) => {
-    const connection = await mysqlPromise.createConnection(connectionConfig);
+    const promisePool = pool.promise();
 
-    await connection.query(`delete from menu where menuId = ?;`, menuId);
-
-    connection.end();
+    await promisePool.query(`delete from menu where menuId = ?;`, menuId);
 };
 
 const getSystemCode = async (uxId) => {
@@ -321,28 +300,18 @@ const postFAQDetails = async (params) => {
     const { title, category, viewYn, poc, viewDt, content, reserveYn, updateId } = params;
 
     try {
-        // MySQL 연결
-        const connection = await mysqlPromise.createConnection(connectionConfig);
+        const promisePool = pool.promise();
 
-        // INSERT 문 쿼리
         const query = `insert into faq (orderNo, title, category, viewYn, poc, viewDt, content, reserveYn, updateDt, updateId) 
       values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
         const subquery = 'SELECT MAX(orderNo) as maxOrderNo FROM faq';
-        const [rows] = await connection.query(subquery);
+        const [rows] = await promisePool.query(subquery);
         const maxOrderNo = rows[0].maxOrderNo;
 
-        // INSERT 문 파라미터
         const values = [maxOrderNo + 1, title, category, viewYn, poc.join(','), viewDt, content, reserveYn, new Date(), updateId];
 
-        // INSERT 문 실행
-        const [result] = await connection.query(query, values);
-
-        // 삽입된 행의 ID 확인
-        console.log('Inserted ID:', result.insertId);
-
-        // 연결 종료
-        connection.end();
+        const [result] = await promisePool.query(query, values);
     } catch (error) {
         console.error('Error:', error);
     }
@@ -352,7 +321,7 @@ const putFAQDetails = async (params) => {
     const { noId, title, category, viewYn, poc, viewDt, content, reserveYn, updateId } = params;
 
     try {
-        const connection = await mysqlPromise.createConnection(connectionConfig);
+        const promisePool = pool.promise();
 
         const query = `UPDATE faq
       SET title = ?, category = ?, viewYn = ?, poc = ?, viewDt = ?, content = ?, reserveYn = ?, updateId = ?
@@ -360,9 +329,7 @@ const putFAQDetails = async (params) => {
 
         const values = [title, category, viewYn, poc.join(','), viewDt, content, reserveYn, updateId, noId];
 
-        await connection.query(query, values);
-
-        connection.end();
+        await promisePool.query(query, values);
     } catch (error) {
         console.error('Error:', error);
     }
@@ -384,15 +351,13 @@ const getTopFAQs = async (pocType) => {
 
 const putTopFAQs = async (params) => {
     try {
-        const connection = await mysqlPromise.createConnection(connectionConfig);
+        const promisePool = pool.promise();
 
         const query = `update faq set topYn = 1 where noId in (?)`;
 
         const values = [params.ids];
 
-        await connection.query(query, values);
-
-        connection.end();
+        await promisePool.query(query, values);
     } catch (error) {
         console.error('Error:', error);
     }
@@ -400,15 +365,13 @@ const putTopFAQs = async (params) => {
 
 const putTopFAQsOrder = async (params) => {
     try {
-        const connection = await mysqlPromise.createConnection(connectionConfig);
+        const promisePool = pool.promise();
 
         const query = `update faq set orderNo = case when orderNo = ? then ? else ? end where orderNo IN (?, ?);`;
 
         const values = [params.noId, params.newOrderNo, params.noId, params.noId, params.newOrderNo];
 
-        await connection.query(query, values);
-
-        connection.end();
+        await promisePool.query(query, values);
     } catch (error) {
         console.error('Error:', error);
     }
@@ -416,13 +379,11 @@ const putTopFAQsOrder = async (params) => {
 
 const deleteFAQs = async (noId) => {
     try {
-        const connection = await mysqlPromise.createConnection(connectionConfig);
+        const promisePool = pool.promise();
 
         const query = `delete from faq where noId = ?;`;
 
-        await connection.query(query, noId);
-
-        connection.end();
+        await promisePool.query(query, noId);
     } catch (error) {
         console.error('Error:', error);
     }
@@ -430,15 +391,13 @@ const deleteFAQs = async (noId) => {
 
 const deleteTopFAQs = async (params) => {
     try {
-        const connection = await mysqlPromise.createConnection(connectionConfig);
+        const promisePool = pool.promise();
 
         const query = `update faq set topYn = 0 where noId in (?);`;
 
         const values = [params.ids];
 
-        await connection.query(query, values);
-
-        connection.end();
+        await promisePool.query(query, values);
     } catch (error) {
         console.error('Error:', error);
     }
