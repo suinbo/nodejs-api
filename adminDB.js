@@ -92,7 +92,7 @@ const getTimezones = async () => {
 
 const getAdmins = async (adminId) => {
     const promisePool = pool.promise();
-    const [row] = await promisePool.query(`select * from admin where id = '${adminId}';`);
+    const [row] = await promisePool.query(`select * from admin where id = ?;`, adminId);
     return row;
 };
 
@@ -147,9 +147,12 @@ const putPassword = async (adminId, newSecretPw) => {
 const getAccessHistory = async (adminId, pageNo) => {
     const promisePool = pool.promise();
     const [totalCount] = await promisePool.query(`select count(*) as totalCount from accesshistory;`);
-    const [row] = await promisePool.query(`
-    select * from accesshistory where adminId = '${adminId}' order by noId desc 
-    limit 10 offset ${(pageNo - 1) * 10}`);
+    const [row] = await promisePool.query(
+        `
+    select * from accesshistory where adminId = ? order by noId desc 
+    limit 10 offset ?`,
+        [adminId, (pageNo - 1) * 10]
+    );
     return { totalCount, row };
 };
 
@@ -162,7 +165,7 @@ const getTopMenus = async () => {
 const getSideMenus = async (parentId) => {
     const promisePool = pool.promise();
     const [allMenus] = await promisePool.query(`select * from menu;`);
-    const [sideMenus] = await promisePool.query(`select * from menu where parentId = '${parentId}';`);
+    const [sideMenus] = await promisePool.query(`select * from menu where parentId = ?;`, parentId);
 
     return sideMenus.map((menu) => ({
         ...menu,
@@ -207,7 +210,8 @@ const getMenuDetails = async (menuId) => {
         `SELECT * FROM menu a 
        join menulanguage b on a.menuId = b.menuId 
        join region c on c.regionCd = b.regionCd
-       where a.menuId = '${menuId}';`
+       where a.menuId = ?;`,
+        menuId
     );
     return row;
 };
@@ -278,22 +282,22 @@ const deleteMenuDetails = async (menuId) => {
 
 const getSystemCode = async (uxId) => {
     const promisePool = pool.promise();
-    const [row] = await promisePool.query(`select * from code where uxId = '${uxId}';`);
+    const [row] = await promisePool.query(`select * from code where uxId = ?;`, uxId);
     return row;
 };
 
 const getContents = async (params) => {
     const { type, keywords, pageNo } = params;
     const promisePool = pool.promise();
-    const [totalCount] = await promisePool.query(`select count(*) as totalCount from contents where ${type} like '%${keywords}%';`);
-    const [row] = await promisePool.query(`select * from contents where ${type} like '%${keywords}%' limit 10 offset ${(pageNo - 1) * 10};`);
+    const [totalCount] = await promisePool.query(`select count(*) as totalCount from contents where ${type} like ?;`, [`%${keywords}%`]);
+    const [row] = await promisePool.query(`select * from contents where ${type} like ? limit 10 offset ?;`, [`%${keywords}%`, (pageNo - 1) * 10]);
     return { totalCount, row };
 };
 
 const getFAQs = async (params) => {
     const { sType, search, page, order, orderType, category, viewYn, poc } = params;
     const promisePool = pool.promise();
-    const [totalCount] = await promisePool.query(`select count(*) as totalCount from faq where ${sType} like '%${search}%';`);
+    const [totalCount] = await promisePool.query(`select count(*) as totalCount from faq where ${sType} like ?;`, [`%${search}%`]);
     const [row] = await promisePool.query(
         `select a.*, b.name as category from faq a
       join code b on a.category = b.value
@@ -309,7 +313,7 @@ const getFAQs = async (params) => {
 
 const getFAQDetails = async (noId) => {
     const promisePool = pool.promise();
-    const [row] = await promisePool.query(`select * from faq where noId='${noId}';`);
+    const [row] = await promisePool.query(`select * from faq where noId = ?;`, noId);
     return row[0];
 };
 
@@ -366,12 +370,15 @@ const putFAQDetails = async (params) => {
 
 const getTopFAQs = async (pocType) => {
     const promisePool = pool.promise();
-    const [totalCount] = await promisePool.query(`select count(*) as totalCount from faq where poc like '%${pocType}%' and topYn = 1;`);
-    const [row] = await promisePool.query(`
+    const [totalCount] = await promisePool.query(`select count(*) as totalCount from faq where poc like ? and topYn = 1;`, `%${pocType}%`);
+    const [row] = await promisePool.query(
+        `
       select a.*, b.name as category from faq a
       join code b on a.category = b.value
-      where poc like '%${pocType}%' and topYn = 1 order by orderNo desc;
-      `);
+      where poc like ? and topYn = 1 order by orderNo desc;
+      `,
+        `%${pocType}%`
+    );
     return { totalCount, row };
 };
 
