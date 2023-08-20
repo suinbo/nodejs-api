@@ -17,7 +17,7 @@ const authenticationMiddleware = async (req, res, next) => {
         next();
     } else {
         // 세션에 사용자 정보가 없으면 인증 실패
-        res.status(200).json(RESPONSE.UNAUTHENTICATED);
+        res.status(401).json(RESPONSE.UNAUTHENTICATED);
     }
 };
 
@@ -69,7 +69,7 @@ router.post('/login', async (req, res) => {
             });
         } else {
             //로그인 정보 없을 시
-            return res.status(200).json(RESPONSE.UNAUTHENTICATED);
+            return res.status(401).json(RESPONSE.UNAUTHENTICATED);
         }
     } catch (error) {
         console.log('error:: ', error);
