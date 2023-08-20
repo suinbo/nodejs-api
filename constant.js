@@ -1,5 +1,6 @@
 const SUCCESS_CODE = '0000',
-    FAIL_CODE = '1000',
+    SESSION_EXPIRED_CODE = '1000',
+    NOT_EXISTED = '1100',
     ERROR_CODE = '1111';
 
 const RESPONSE = {
@@ -11,12 +12,16 @@ const RESPONSE = {
         code: ERROR_CODE,
         detailMessage: '서버 오류가 발생했습니다.',
     },
+    SESSION_EXPIRED: {
+        code: SESSION_EXPIRED_CODE,
+        detailMessage: '세션이 만료되었습니다.',
+    },
     UNAUTHENTICATED: {
-        code: FAIL_CODE,
+        code: NOT_EXISTED,
         detailMessage: '존재하지 않는 계정입니다.',
     },
     UNCORRECT: {
-        code: FAIL_CODE,
+        code: NOT_EXISTED,
         detailMessage: '비밀번호가 일치하지 않습니다.',
     },
     LOGIN_SUCCESS: {

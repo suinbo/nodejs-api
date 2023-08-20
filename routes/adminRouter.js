@@ -17,7 +17,7 @@ const authenticationMiddleware = async (req, res, next) => {
         next();
     } else {
         // 세션에 사용자 정보가 없으면 인증 실패
-        res.status(401).json(RESPONSE.UNAUTHENTICATED);
+        res.status(401).json(RESPONSE.SESSION_EXPIRED);
     }
 };
 
